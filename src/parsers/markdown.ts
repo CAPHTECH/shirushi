@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
-import matter from 'gray-matter';
-import { DocumentParseResult, DocumentProblem } from '../types/document.js';
+
+import matter, { type GrayMatterFile } from 'gray-matter';
+
+import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
 
 const DOC_ID_PATTERN = /^doc_id\s*:/gm;
 
@@ -48,10 +50,11 @@ export function parseMarkdownContent(path: string, content: string): DocumentPar
   }
 
   try {
-    const parsed = matter(content);
-    metadata = normalizeMetadata(parsed.data ?? {});
+    const parsed = matter(content) as GrayMatterFile<Record<string, unknown>>;
+    const data = (parsed.data ?? {}) as Record<string, unknown>;
+    metadata = normalizeMetadata(data);
 
-    const value = parsed.data?.doc_id;
+    const value = data.doc_id;
     if (typeof value === 'string') {
       docId = value;
     } else if (value !== undefined) {

@@ -1,8 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+
 import yaml from 'js-yaml';
 import { ZodError } from 'zod';
-import { ConfigSchema, ShirushiConfig } from './schema.js';
+
+import { ConfigSchema } from './schema.js';
+
+import type { ShirushiConfig } from './schema.js';
 
 export interface LoadConfigOptions {
   cwd?: string;

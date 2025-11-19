@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
+
 import yaml from 'js-yaml';
-import { DocumentParseResult, DocumentProblem } from '../types/document.js';
+
+import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
 
 const DOC_ID_REGEX = /^doc_id\s*:/gm;
 
