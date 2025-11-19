@@ -4,12 +4,62 @@ This directory contains formal verification artifacts for the Shirushi document 
 
 ## Contents
 
+**Specifications:**
 - **`shirushi.als`** - Alloy structural specification (invariants and constraints)
 - **`shirushi.tla`** - TLA+ temporal specification (state transitions and properties)
-- **`shirushi.cfg`** - TLC model checker configuration
+- **`shirushi.cfg`** - TLC model checker configuration (deprecated, use apalache.cfg)
+- **`apalache.cfg`** - Apalache configuration for TLA+ model checking
+
+**Infrastructure:**
+- **`Dockerfile`** - Multi-stage Docker image with Apalache + Alloy CLI
+- **`docker-compose.yml`** - Docker Compose configuration for local testing
+- **`verify-all.sh`** - Unified verification script (runs both tools)
+- **`.github/workflows/formal-verification.yml`** - GitHub Actions CI workflow
+
+**Documentation:**
 - **`VERIFICATION_STRATEGY.md`** - Comprehensive verification approach documentation
+- **`CI_INTEGRATION_DESIGN.md`** - CI/CD integration design and architecture
+- **`README.md`** - This file
 
 ## Quick Start
+
+### Option 1: Using Docker (Recommended for CI)
+
+The easiest way to run formal verification is using Docker:
+
+```bash
+# Run all verifications
+docker-compose run --rm verify
+
+# Run only TLA+ checks
+docker-compose run --rm apalache
+
+# Run only Alloy checks
+docker-compose run --rm alloy
+
+# Interactive shell
+docker-compose run --rm shell
+```
+
+**First time setup:**
+```bash
+cd formal
+docker-compose build
+```
+
+### Option 2: Using Local Script
+
+```bash
+cd formal
+./verify-all.sh
+```
+
+This script will:
+1. Check if Apalache is installed, run TLA+ verification
+2. Check if AlloyCommandline is installed, run Alloy verification
+3. Generate reports in `output/` directory
+
+### Option 3: Manual Installation
 
 ### Prerequisites
 
@@ -199,39 +249,80 @@ StateConstraint == Len(history) <= 20  (* Increase from 10 *)
 - **Cause**: Abstract functions not properly defined
 - **Fix**: Ensure `ParseDocID` and `ComputeChecksum` are declared as CONSTANTS with ASSUME axioms
 
-## Integration with CI
+## Continuous Integration
 
-### GitHub Actions Example
+### GitHub Actions
 
+Formal verification runs automatically on every push and pull request. See `.github/workflows/formal-verification.yml` for the full workflow.
+
+**Status badges:**
+![Formal Verification](https://github.com/YOUR_ORG/shirushi/actions/workflows/formal-verification.yml/badge.svg)
+
+**What's verified:**
+- ✅ Alloy structural invariants
+- ✅ TLA+ type checking
+- ✅ TLA+ model checking with Apalache
+- ✅ Counterexample generation on failures
+
+**Artifacts:**
+- Verification logs
+- Counterexamples (if found)
+- JSON reports
+
+**Manual trigger:**
+```bash
+# Via GitHub UI: Actions tab → Formal Verification → Run workflow
+
+# Via GitHub CLI
+gh workflow run formal-verification.yml
+```
+
+### Docker-based CI
+
+The provided `Dockerfile` can be used in any CI system:
+
+**GitHub Actions:**
 ```yaml
-name: Formal Verification
+- name: Run verification
+  run: |
+    docker build -t shirushi-verify formal/
+    docker run --rm -v $PWD/formal:/workspace shirushi-verify
+```
 
-on: [push, pull_request]
+**GitLab CI:**
+```yaml
+verify:
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t shirushi-verify formal/
+    - docker run --rm -v $PWD/formal:/workspace shirushi-verify
+```
 
-jobs:
-  alloy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '11'
-      - name: Download Alloy
-        run: wget https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.1.0/org.alloytools.alloy.dist.jar
-      - name: Run Alloy checks
-        run: java -jar org.alloytools.alloy.dist.jar --check formal/shirushi.als
+**Jenkins:**
+```groovy
+stage('Formal Verification') {
+  steps {
+    sh 'docker build -t shirushi-verify formal/'
+    sh 'docker run --rm -v $PWD/formal:/workspace shirushi-verify'
+  }
+}
+```
 
-  tla:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '11'
-      - name: Download TLA+ Tools
-        run: wget https://github.com/tlaplus/tlaplus/releases/download/v1.8.0/tla2tools.jar
-      - name: Run TLC
-        run: java -jar tla2tools.jar -workers auto -config formal/shirushi.cfg formal/shirushi.tla
+### Local Pre-commit Hook
+
+Add to `.git/hooks/pre-commit`:
+```bash
+#!/bin/bash
+if git diff --cached --name-only | grep -q "^formal/"; then
+  echo "Running formal verification..."
+  cd formal && ./verify-all.sh
+  if [ $? -ne 0 ]; then
+    echo "❌ Formal verification failed. Commit aborted."
+    exit 1
+  fi
+fi
 ```
 
 ## Contributing

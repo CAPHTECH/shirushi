@@ -1,0 +1,277 @@
+name: Formal Verification
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'formal/**'
+      - '.github/workflows/formal-verification.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'formal/**'
+  workflow_dispatch:  # Allow manual triggers
+
+# Cancel in-progress runs when a new push is made
+concurrency:
+  group: formal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Job 1: Alloy Verification
+  # ============================================================================
+  alloy:
+    name: Alloy Specification Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Cache Alloy CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.alloy-cli
+          key: alloy-cli-${{ runner.os }}-v1
+          restore-keys: |
+            alloy-cli-${{ runner.os }}-
+
+      - name: Download AlloyCommandline
+        run: |
+          mkdir -p ~/.alloy-cli
+          if [ ! -f ~/.alloy-cli/AlloyCommandline.jar ]; then
+            echo "Downloading AlloyCommandline..."
+            # Note: Replace with actual release URL when available
+            # For now, we'll build from source
+            git clone --depth 1 https://github.com/draftcode/AlloyCommandline.git /tmp/alloy-cli
+            cd /tmp/alloy-cli
+            gradle build
+            cp build/libs/AlloyCommandline.jar ~/.alloy-cli/AlloyCommandline.jar
+          else
+            echo "Using cached AlloyCommandline"
+          fi
+
+      - name: Run Alloy Checks
+        id: alloy-check
+        run: |
+          cd formal
+          java -jar ~/.alloy-cli/AlloyCommandline.jar shirushi.als | tee ../alloy-output.txt
+        continue-on-error: true
+
+      - name: Parse Alloy Results
+        if: always()
+        run: |
+          if [ -f alloy-output.txt ]; then
+            echo "## Alloy Results" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat alloy-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Alloy Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alloy-results
+          path: |
+            alloy-output.txt
+            formal/*.xml
+          retention-days: 30
+
+      - name: Check Alloy Status
+        if: steps.alloy-check.outcome == 'failure'
+        run: |
+          echo "::error::Alloy verification failed"
+          exit 1
+
+  # ============================================================================
+  # Job 2: TLA+ Verification with Apalache
+  # ============================================================================
+  tla:
+    name: TLA+ Model Checking
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Apalache
+        uses: actions/cache@v4
+        with:
+          path: ~/.apalache
+          key: apalache-${{ runner.os }}-0.45.7
+          restore-keys: |
+            apalache-${{ runner.os }}-
+
+      - name: Install Apalache
+        run: |
+          if [ ! -d ~/.apalache/bin ]; then
+            echo "Downloading Apalache..."
+            mkdir -p ~/.apalache
+            cd ~/.apalache
+            curl -LO https://github.com/informalsystems/apalache/releases/download/v0.45.7/apalache-0.45.7.zip
+            unzip -q apalache-0.45.7.zip
+            mv apalache-0.45.7/* .
+            rmdir apalache-0.45.7
+            rm apalache-0.45.7.zip
+          else
+            echo "Using cached Apalache"
+          fi
+          echo "$HOME/.apalache/bin" >> $GITHUB_PATH
+
+      - name: Verify Apalache Installation
+        run: |
+          apalache-mc version
+
+      - name: Type Check TLA+
+        id: typecheck
+        run: |
+          cd formal
+          apalache-mc typecheck shirushi.tla | tee ../typecheck-output.txt
+        continue-on-error: true
+
+      - name: Model Check TLA+
+        id: modelcheck
+        if: steps.typecheck.outcome == 'success'
+        run: |
+          cd formal
+          mkdir -p ../output/apalache
+          apalache-mc check \
+            --config=apalache.cfg \
+            --write-json \
+            --out-dir=../output/apalache \
+            shirushi.tla | tee ../modelcheck-output.txt
+        continue-on-error: true
+
+      - name: Parse Apalache Results
+        if: always()
+        run: |
+          echo "## TLA+ Verification Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f typecheck-output.txt ]; then
+            echo "### Type Checking" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 20 typecheck-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -f modelcheck-output.txt ]; then
+            echo "### Model Checking" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 30 modelcheck-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -f output/apalache/counterexample.tla ]; then
+            echo "### ⚠️ Counterexample Found" >> $GITHUB_STEP_SUMMARY
+            echo '```tla' >> $GITHUB_STEP_SUMMARY
+            head -n 50 output/apalache/counterexample.tla >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "See artifacts for full counterexample" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Apalache Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apalache-results
+          path: |
+            typecheck-output.txt
+            modelcheck-output.txt
+            output/apalache/**
+          retention-days: 30
+
+      - name: Check TLA+ Status
+        if: steps.typecheck.outcome == 'failure' || steps.modelcheck.outcome == 'failure'
+        run: |
+          echo "::error::TLA+ verification failed"
+          exit 1
+
+  # ============================================================================
+  # Job 3: Comment PR with Results (only on PR)
+  # ============================================================================
+  comment-pr:
+    name: Comment on PR
+    runs-on: ubuntu-latest
+    needs: [alloy, tla]
+    if: always() && github.event_name == 'pull_request'
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Prepare Comment
+        id: prepare
+        run: |
+          ALLOY_STATUS="${{ needs.alloy.result }}"
+          TLA_STATUS="${{ needs.tla.result }}"
+
+          COMMENT="## Formal Verification Results\n\n"
+
+          if [ "$ALLOY_STATUS" = "success" ]; then
+            COMMENT="${COMMENT}✅ **Alloy**: All checks passed\n"
+          else
+            COMMENT="${COMMENT}❌ **Alloy**: Verification failed\n"
+          fi
+
+          if [ "$TLA_STATUS" = "success" ]; then
+            COMMENT="${COMMENT}✅ **TLA+**: All checks passed\n"
+          else
+            COMMENT="${COMMENT}❌ **TLA+**: Verification failed\n"
+          fi
+
+          COMMENT="${COMMENT}\n[View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          echo "comment<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$COMMENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ steps.prepare.outputs.comment }}
+
+  # ============================================================================
+  # Job 4: Status Check (required for branch protection)
+  # ============================================================================
+  status:
+    name: Formal Verification Status
+    runs-on: ubuntu-latest
+    needs: [alloy, tla]
+    if: always()
+
+    steps:
+      - name: Check Overall Status
+        run: |
+          ALLOY_STATUS="${{ needs.alloy.result }}"
+          TLA_STATUS="${{ needs.tla.result }}"
+
+          echo "Alloy: $ALLOY_STATUS"
+          echo "TLA+: $TLA_STATUS"
+
+          if [ "$ALLOY_STATUS" != "success" ] || [ "$TLA_STATUS" != "success" ]; then
+            echo "::error::Formal verification failed"
+            exit 1
+          fi
+
+          echo "✅ All formal verifications passed"
