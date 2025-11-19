@@ -1,0 +1,73 @@
+# PCE / Kakusill / EdgePatch Configuration
+# This is the full example from the Shirushi specification
+
+# Files to scan for doc_id
+doc_globs:
+  - "docs/**/*.md"
+  - "docs/**/*.yaml"
+  - "docs/**/*.yml"
+
+# Index file location
+index_file: "docs/doc_index.yaml"
+
+# Field name for document ID
+id_field: "doc_id"
+
+# ID Format: COMP-KIND-YEAR4-SER4-CHK1
+# Example: PCE-SPEC-2025-0001-G
+id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}"
+
+# Dimension definitions
+dimensions:
+  # Component name (PCE, KKS, EDGE)
+  COMP:
+    type: enum
+    values: ["PCE", "KKS", "EDGE"]
+    select:
+      by_path:
+        - pattern: "docs/pce/**"
+          value: "PCE"
+        - pattern: "docs/kakusill/**"
+          value: "KKS"
+        - pattern: "docs/edge/**"
+          value: "EDGE"
+
+  # Document kind derived from doc_type
+  KIND:
+    type: enum_from_doc_type
+    mapping:
+      spec: "SPEC"        # Specification
+      design: "DES"       # Design document
+      memo: "MEMO"        # Memo/notes
+      runbook: "RUN"      # Runbook/operational guide
+      decision: "ADR"     # Architecture Decision Record
+
+  # Year (4 digits)
+  YEAR4:
+    type: year
+    digits: 4
+    source: "created_at"
+
+  # Serial number (4 digits, scoped by COMP-KIND-YEAR)
+  SER4:
+    type: serial
+    digits: 4
+    scope: ["COMP", "KIND", "YEAR4"]
+
+  # Checksum (1 character A-Z)
+  CHK1:
+    type: checksum
+    algo: "mod26AZ"
+    of: ["COMP", "KIND", "YEAR4", "SER4"]
+
+# Validation rules
+forbid_id_change: true
+allow_missing_id_in_new_files: false
+
+# Document type specific rules
+rules:
+  - when:
+      doc_type: "spec"
+    require_fields:
+      - "version"
+      - "owner"

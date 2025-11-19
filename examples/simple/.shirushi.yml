@@ -1,0 +1,41 @@
+# Simple Shirushi Configuration
+# Use this as a starting point for small projects with basic ID requirements
+
+# Files to scan
+doc_globs:
+  - "docs/**/*.md"
+  - "docs/**/*.yaml"
+
+# Index file location
+index_file: "docs/doc_index.yaml"
+
+# Simple ID format: TYPE-YEAR-NUM
+# Example: SPEC-2025-0001
+id_format: "{TYPE}-{YEAR}-{NUM}"
+
+# Dimension definitions
+dimensions:
+  # Document type (SPEC, DOC, MEMO, etc.)
+  TYPE:
+    type: enum
+    values:
+      - "SPEC"   # Specification
+      - "DOC"    # General documentation
+      - "MEMO"   # Memo/notes
+      - "GUIDE"  # User guide
+
+  # Year (4 digits)
+  YEAR:
+    type: year
+    digits: 4
+    source: "created_at"  # Use 'created_at' field from document metadata
+
+  # Sequential number (4 digits, scoped by TYPE and YEAR)
+  NUM:
+    type: serial
+    digits: 4
+    scope: ["TYPE", "YEAR"]
+
+# Validation rules
+forbid_id_change: true                  # Prevent changing existing IDs
+allow_missing_id_in_new_files: false    # All documents must have IDs

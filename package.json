@@ -1,0 +1,93 @@
+{
+  "name": "shirushi",
+  "version": "0.1.0",
+  "description": "Document ID management and validation system for Git repositories",
+  "type": "module",
+  "keywords": [
+    "document",
+    "id",
+    "validation",
+    "git",
+    "ci",
+    "lint",
+    "markdown",
+    "yaml"
+  ],
+  "homepage": "https://github.com/your-org/shirushi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/shirushi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/shirushi/issues"
+  },
+  "license": "MIT",
+  "author": "Your Organization",
+  "bin": {
+    "shirushi": "./dist/cli/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:mutation": "stryker run",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "shirushi:lint": "node dist/cli/index.js lint",
+    "shirushi:scan": "node dist/cli/index.js scan",
+    "prepublishOnly": "pnpm build && pnpm test && pnpm lint",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "debug": "^4.3.4",
+    "fast-glob": "^3.3.2",
+    "gray-matter": "^4.0.3",
+    "js-yaml": "^4.1.0",
+    "simple-git": "^3.22.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^8.0.0",
+    "@stryker-mutator/typescript-checker": "^8.0.0",
+    "@stryker-mutator/vitest-runner": "^8.0.0",
+    "@types/debug": "^4.1.12",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "@vitest/ui": "^1.2.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "fast-check": "^3.15.1",
+    "prettier": "^3.2.4",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

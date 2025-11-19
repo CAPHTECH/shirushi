@@ -1,0 +1,26 @@
+documents:
+  - doc_id: PCE-SPEC-2025-0001-G
+    path: docs/pce/boundary.md
+    title: Boundary Definition
+    doc_type: spec
+    status: active
+    version: "1.0.0"
+    owner: "caph/pce"
+    created_at: "2025-01-15"
+    tags:
+      - PCE
+      - boundary
+      - architecture
+
+  - doc_id: KKS-SPEC-2025-0002-F
+    path: docs/kakusill/principles.yaml
+    title: Kakusill Service Principles
+    doc_type: spec
+    status: draft
+    version: "0.3.2"
+    owner: "caph/kakusill"
+    created_at: "2025-01-16"
+    tags:
+      - Kakusill
+      - principle
+      - service-design
