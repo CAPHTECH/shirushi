@@ -208,7 +208,9 @@ sig ChecksumDimension extends Dimension {
 // Currently only mod26AZ, but extensible for future algorithms (e.g., CRC32, SHA256)
 enum ChecksumAlgorithm { Mod26AZ }
 
-abstract sig PathPattern {}
+abstract sig PathPattern {
+  categories: some PathCategory
+}
 one sig PatternPCE, PatternKKS, PatternEDGE, PatternAny extends PathPattern {}
 
 // ============================================================================
@@ -244,6 +246,13 @@ one sig SampleState extends SystemState {}
 fact SamplePathAssignments {
   PathPCEFile.category = PathCatPCE
   PathEDGEFile.category = PathCatEDGE
+}
+
+fact PathPatternAssignments {
+  PatternPCE.categories = PathCatPCE
+  PatternKKS.categories = PathCatKKS
+  PatternEDGE.categories = PathCatEDGE
+  PatternAny.categories = PathCatPCE + PathCatKKS + PathCatEDGE + PathCatMisc
 }
 
 fact SampleDimensionDefs {
@@ -484,6 +493,17 @@ pred uniqueSerialsInScope[s: SystemState] {
   }
 }
 
+pred handlerSpec[s: SystemState] {
+  all dim: s.config.dimensions.Dimension & EnumDimension |
+    enumSelectByPathSpec[s, dim]
+  all dim: s.config.dimensions.Dimension & EnumFromDocTypeDimension |
+    enumFromDocTypeSpec[s, dim]
+  all dim: s.config.dimensions.Dimension & YearDimension |
+    yearDimensionSpec[s, dim]
+  all dim: s.config.dimensions.Dimension & SerialDimension |
+    serialHandlerSpec[s, dim]
+}
+
 // Combined system invariant
 pred systemInvariant[s: SystemState] {
   uniqueDocIDs[s]
@@ -495,6 +515,7 @@ pred systemInvariant[s: SystemState] {
   all d: s.documents | validChecksum[s, d]
   uniqueSerialsInScope[s]
   all d: s.documents | validStatus[s, d]
+  handlerSpec[s]
 }
 
 // [NEW] Status validation
@@ -571,10 +592,51 @@ pred isValidSerial[value: String, digits: Int] {
 }
 
 pred matchPath[p: Path, pat: PathPattern] {
-  pat = PatternAny
-  or (pat = PatternPCE and p.category = PathCatPCE)
-  or (pat = PatternKKS and p.category = PathCatKKS)
-  or (pat = PatternEDGE and p.category = PathCatEDGE)
+  p.category in pat.categories
+}
+
+fun firstMatchingRuleIndex[dim: EnumDimension, p: Path]: lone Int {
+  { i: dim.rules.inds |
+      matchPath[p, dim.rules[i].pattern] and
+      no j: dim.rules.inds | j < i and matchPath[p, dim.rules[j].pattern]
+  }
+}
+
+fun firstMatchingRule[dim: EnumDimension, p: Path]: lone EnumRule {
+  { r: EnumRule |
+      some i: firstMatchingRuleIndex[dim, p] | r = dim.rules[i]
+  }
+}
+
+pred enumSelectByPathSpec[s: SystemState, dim: EnumDimension] {
+  all d: s.documents |
+    some d.doc_id implies {
+      some rule: firstMatchingRule[dim, d.path] |
+        let parsed = parseDocID[d.doc_id, s.config.id_format] |
+          parsed[dim.name] = rule.value
+    }
+}
+
+pred enumFromDocTypeSpec[s: SystemState, dim: EnumFromDocTypeDimension] {
+  all d: s.documents |
+    (some d.doc_id and some d.doc_type) implies {
+      let parsed = parseDocID[d.doc_id, s.config.id_format] |
+        parsed[dim.name] = dim.mapping[d.doc_type]
+    }
+}
+
+pred yearDimensionSpec[s: SystemState, dim: YearDimension] {
+  all d: s.documents | some d.doc_id implies {
+    let parsed = parseDocID[d.doc_id, s.config.id_format] |
+      isValidYear[parsed[dim.name], dim.digits]
+  }
+}
+
+pred serialHandlerSpec[s: SystemState, dim: SerialDimension] {
+  all d: s.documents | some d.doc_id implies {
+    let parsed = parseDocID[d.doc_id, s.config.id_format] |
+      isValidSerial[parsed[dim.name], dim.digits]
+  }
 }
 
 fun weightEntry[val: String]: one ValueWeight {
@@ -703,6 +765,38 @@ pred DOC_ID_CHANGED[baseState: SystemState, currentState: SystemState, d: Docume
   (some d_base: baseState.documents | d_base.path = d.path) and
   (let d_base = { doc: baseState.documents | doc.path = d.path } |
     some d_base.doc_id and some d.doc_id and d_base.doc_id != d.doc_id)
+}
+
+// ============================================================================
+// Streaming Event Schema (lint --json --stream)
+// ============================================================================
+
+sig RequestId {}
+enum StreamPhase { StreamStart, StreamDoc, StreamSummary }
+enum StreamStatus { StreamOK, StreamWarn, StreamError }
+enum StreamExitCode { ExitOk, ExitWarn, ExitError }
+
+sig LintEvent {
+  phase: one StreamPhase,
+  status: one StreamStatus,
+  request: one RequestId,
+  document: lone Document,
+  exitCode: one StreamExitCode
+}
+
+fact LintEventWellFormed {
+  all e: LintEvent |
+    (e.phase = StreamDoc) => some e.document
+  all e: LintEvent |
+    (e.phase != StreamDoc) => no e.document
+  all e: LintEvent |
+    (e.phase = StreamStart) => e.status = StreamOK
+  all e: LintEvent |
+    (e.phase = StreamSummary) => (
+      (e.status = StreamOK and e.exitCode = ExitOk) or
+      (e.status = StreamWarn and e.exitCode = ExitWarn) or
+      (e.status = StreamError and e.exitCode = ExitError)
+    )
 }
 
 // ============================================================================

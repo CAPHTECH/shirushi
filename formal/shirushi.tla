@@ -1,57 +1,74 @@
 -------------------------- MODULE shirushi --------------------------
 (*
 Shirushi Document ID Management System - TLA+ Specification
-Version: 0.1.0
+Version: 0.2.0
 
-This specification models the temporal behavior and state transitions
-of the Shirushi system, complementing the structural invariants
-verified in the Alloy model.
-
-Focus areas:
-- Read-only nature of 'lint' command
-- Invariant preservation during 'assign' command
-- Immutability enforcement across Git states
-- Future: Concurrent assign operations (v0.2)
+This specification models CLI + service-layer behaviour, including
+assign two-phase patching, streaming lint events, and config-driven
+constants. It complements the Alloy structural model.
 *)
 
 EXTENDS TLC, Integers, Sequences, FiniteSets
 
 CONSTANTS
   \* @type: Set(Str);
-  Documents,        \* Set of all possible documents
+  Documents,
   \* @type: Set(Str);
-  DocIDs,           \* Set of all possible document IDs
+  DocIDs,
   \* @type: Set(Str);
-  Paths,            \* Set of all possible file paths
+  Paths,
   \* @type: Int;
-  MaxSerialPerScope, \* Maximum serial number per scope (e.g., 9999 for 4 digits)
+  MaxSerialPerScope,
 
-  \* TLC Model Checking Constants (bounded state space)
+  \* TLC bounded subsets
   \* @type: Set(Str);
-  PathsSubset,      \* Finite subset of Paths for model checking
+  PathsSubset,
   \* @type: Set(Str);
-  DocIDsSubset,     \* Finite subset of DocIDs for model checking
+  DocIDsSubset,
   \* @type: Set(Str);
-  ScopeKeys,        \* Finite set of scope keys (e.g., {"PCE-SPEC-2025"})
-
-  \* @type: Int;
-  MaxDocs,          \* Maximum number of documents in state space
-  \* @type: Set(Str);
-  MetadataKeys,     \* Set of allowed metadata keys
-  \* @type: Set(Str);
-  GitRefs,          \* Set of allowed git references
+  ScopeKeys,
 
   \* @type: Int;
-  MaxHistory,       \* Maximum history length for bounded checking
+  MaxDocs,
+  \* @type: Set(Str);
+  MetadataKeys,
+  \* @type: Set(Str);
+  GitRefs,
+  \* @type: Set(Str);
+  ScanFormats,
 
+  \* @type: Int;
+  MaxHistory,
   \* @type: Str;
-  NoID              \* Special value representing "no ID assigned yet"
+  NoID,
+  \* @type: Str;
+  NoPath,
+  \* @type: Str;
+  NoScopeKey,
+  \* @type: Set(Str);
+  ErrorCodes,
+  \* @type: Set(Int);
+  ExitCodes,
+  \* @type: Int;
+  MaxRequests,
+  \* @type: Int;
+  MaxServiceLog,
+  \* @type: Int;
+  MaxStreamEvents
 
 ASSUME MaxSerialPerScope > 0
 ASSUME MaxDocs > 0
 ASSUME MaxHistory > 0
+ASSUME MaxRequests > 0
+ASSUME MaxServiceLog > 0
+ASSUME MaxStreamEvents > 0
 ASSUME NoID \notin DocIDs
+ASSUME NoPath \notin Paths
+ASSUME NoScopeKey \notin ScopeKeys
+ASSUME 0 \in ExitCodes /\ 1 \in ExitCodes /\ 2 \in ExitCodes
 
+(* Dimension helper constants (config-derived).
+   In practice formal-sync generates these functions/sets. *)
 CompCodes == {"PCE"}
 KindCodes == {"SPEC"}
 YearCodes == {"2024", "2025"}
@@ -59,74 +76,95 @@ SerialStrings == {"0001", "0002"}
 ChecksumLetters == {"A", "B"}
 
 EnumSelection == [p \in Paths |-> "PCE"]
-
-KindMapping == [dt \in STRING |->
-  "SPEC"
-]
-
+KindMapping == [dt \in STRING |-> "SPEC"]
 YearSelection == [p \in Paths |-> "2025"]
-
-SerialFormatter == [i \in 1..MaxSerialPerScope |->
-  IF i = 1 THEN "0001"
-  ELSE IF i = 2 THEN "0002"
-  ELSE "0001"
-]
-
-ScopeKeyBuilder == [tuple \in CompCodes \X KindCodes \X YearCodes |->
-  "PCE-SPEC-2025"
-]
-
-ChecksumFunction == [tuple \in CompCodes \X KindCodes \X YearCodes \X SerialStrings |->
-  "A"
-]
-
+SerialFormatter == [i \in 1..MaxSerialPerScope |-> IF i = 1 THEN "0001" ELSE "0002"]
+ScopeKeyBuilder == [tuple \in CompCodes \X KindCodes \X YearCodes |-> "PCE-SPEC-2025"]
+ChecksumFunction == [tuple \in CompCodes \X KindCodes \X YearCodes \X SerialStrings |-> "A"]
 ComposeDocID == [tuple \in CompCodes \X KindCodes \X YearCodes \X SerialStrings \X ChecksumLetters |->
-  LET serial == tuple[4] IN
-    IF serial = "0001"
-      THEN "PCE-SPEC-2025-0001-A"
-      ELSE "PCE-SPEC-2025-0002-A"
-]
+  IF tuple[4] = "0001" THEN "PCE-SPEC-2025-0001-A" ELSE "PCE-SPEC-2025-0002-A"]
 
 AllowMissingIDs == FALSE
 ForbidIDChange == TRUE
 InitialDocIDs == [p \in Paths |-> NoID]
 
-----
-
-(*
+(* ----------------------------------------------------------------- *)
 VARIABLES
-*)
+  docs,
+  index,
+  gitBase,
+  serialCounters,
+  history,
+  patchBuffer,
+  serviceLog,
+  nextRequestId,
+  activeStream,
+  streamEvents
 
-VARIABLES
-  (* Current state of documents in the working directory *)
-  \* @type("Str -> [docID: Str, docType: Str, metadata: Str -> Str]");
-  docs,             \* [Path -> Document record]
+PatchStatus == {"idle", "pending"}
+StreamStatuses == {"ok", "warn", "error"}
+StreamPhases == {"start", "doc", "summary"}
 
-  (* Index file state *)
-  \* @type("Str -> [path: Str, docType: Str, metadata: Str -> Str]");
-  index,            \* [DocID -> IndexEntry record]
+PatchBufferType == [
+  status: PatchStatus,
+  path: Paths \cup {NoPath},
+  docID: DocIDs \cup {NoID},
+  indexEntry: [path: Paths \cup {NoPath}, docType: STRING, metadata: [MetadataKeys -> STRING]],
+  scopeKey: ScopeKeys \cup {NoScopeKey},
+  nextSerial: 0..MaxSerialPerScope,
+  prevSerial: 0..MaxSerialPerScope,
+  dryRun: BOOLEAN,
+  requestId: 0..MaxRequests
+]
 
-  (* Git state for --base comparison *)
-  \* @type("Str -> [docID: Str, docType: Str, metadata: Str -> Str]");
-  gitBase,          \* [Path -> Document record] - base ref snapshot
+ServiceEntryType == [
+  id: 0..MaxRequests,
+  endpoint: {"lint", "scan", "assign"},
+  exitCode: ExitCodes,
+  errorCode: ErrorCodes,
+  mutates: BOOLEAN,
+  dryRun: BOOLEAN
+]
 
-  (* Serial counter state for assign operation *)
-  \* @type("Str -> Int");
-  serialCounters,   \* [ScopeKey -> Int] - highest serial per scope
+ActiveStreamType == [
+  status: {"idle", "active"},
+  requestId: 0..MaxRequests,
+  finalExit: ExitCodes,
+  worstStatus: StreamStatuses,
+  emittedFinal: BOOLEAN
+]
 
-  (* Operation history for temporal reasoning *)
-  \* @type: Seq([op: Str, params: Str]);
-  history           \* Sequence of operations performed (params simplified for type checking)
+StreamEventType == [
+  requestId: 0..MaxRequests,
+  phase: StreamPhases,
+  status: StreamStatuses,
+  exitCode: ExitCodes,
+  docPath: Paths \cup {NoPath}
+]
 
-----
+PatchIdle == [
+  status |-> "idle",
+  path |-> NoPath,
+  docID |-> NoID,
+  indexEntry |-> [path |-> NoPath, docType |-> "", metadata |-> [k \in MetadataKeys |-> ""]],
+  scopeKey |-> NoScopeKey,
+  nextSerial |-> 0,
+  prevSerial |-> 0,
+  dryRun |-> TRUE,
+  requestId |-> 0
+]
 
-(*
-TYPE INVARIANT
-All state variables maintain their expected types
-*)
+ActiveStreamIdle == [
+  status |-> "idle",
+  requestId |-> 0,
+  finalExit |-> 0,
+  worstStatus |-> "ok",
+  emittedFinal |-> TRUE
+]
 
+(* ----------------------------------------------------------------- *)
 TypeInvariant ==
-  /\ docs \in [Paths -> [
+  /\ docs \in [PathsSubset -> [
        docID: DocIDs \cup {NoID},
        docType: STRING,
        metadata: [MetadataKeys -> STRING]
@@ -137,82 +175,93 @@ TypeInvariant ==
        docType: STRING,
        metadata: [MetadataKeys -> STRING]
      ]
-  /\ gitBase \in [Paths -> [
+  /\ gitBase \in [PathsSubset -> [
        docID: DocIDs \cup {NoID},
        docType: STRING,
        metadata: [MetadataKeys -> STRING]
      ]]
   /\ serialCounters \in [ScopeKeys -> 0..MaxSerialPerScope]
   /\ history \in Seq([
-       op: {"lint", "assign", "gitCheckout"},
-       params: STRING \cup Paths
-     ])
+        op: {"lint", "scan", "assignPlan", "assignCommit", "assignDiscard", "gitCheckout"},
+        params: STRING \cup Paths
+      ])
+  /\ patchBuffer \in PatchBufferType
+  /\ serviceLog \in Seq(ServiceEntryType)
+  /\ nextRequestId \in 0..MaxRequests
+  /\ activeStream \in ActiveStreamType
+  /\ streamEvents \in Seq(StreamEventType)
 
-----
-
-(*
-HELPER FUNCTIONS
-*)
-
-(* Extract scope key from document ID components *)
-(* Abstracted as CONSTANT to avoid Apalache string concatenation issues *)
-(* Example: scopeKey(["COMP" |-> "PCE", "KIND" |-> "SPEC", "YEAR4" |-> "2025"], ["COMP", "KIND", "YEAR4"])
-             = "PCE-SPEC-2025" *)
-\* In actual impl: concatenates parsedID[scopeDims[i]] with "-" separator
-\* For model checking: treated as uninterpreted function
-
-(* Note: ParseDocID and ComputeChecksum are fully abstracted away *)
-(* All doc_id operations use concrete literals to avoid Apalache string concatenation issues *)
-(* This simplification is acceptable for v0.1 model checking *)
-
-(* Get all doc_ids currently in use *)
-UsedDocIDs == { docs[p].docID : p \in DOMAIN docs }
-
-(* Get all indexed doc_ids *)
+(* ----------------------------------------------------------------- *)
+UsedDocIDs == ({ docs[p].docID : p \in DOMAIN docs }) \ {NoID}
 IndexedDocIDs == DOMAIN index
+SeqElems(seq) == { seq[i] : i \in DOMAIN seq }
 
-----
+StatusExit(status) ==
+  IF status = "ok" THEN 0
+  ELSE IF status = "warn" THEN 1
+  ELSE 2
 
-(*
-INVARIANTS (from Alloy model)
-*)
+CombineStatus(a, b) ==
+  IF a = "error" \/ b = "error" THEN "error"
+  ELSE IF a = "warn" \/ b = "warn" THEN "warn"
+  ELSE "ok"
 
-(* INV-1: Document IDs are unique *)
+LintMissingDocs == { p \in DOMAIN docs : docs[p].docID = NoID }
+LintStatus ==
+  IF LintMissingDocs = {} THEN "ok"
+  ELSE IF AllowMissingIDs THEN "warn"
+  ELSE "error"
+
+LintErrorCode(status) ==
+  IF status = "ok" THEN "OK"
+  ELSE IF status = "warn" THEN "ALLOW_MISSING_ID"
+  ELSE "VALIDATION_ERROR"
+
+AssignDerived(path) ==
+  LET docType == docs[path].docType
+      compValue == EnumSelection[path]
+      kindValue == KindMapping[docType]
+      yearValue == YearSelection[path]
+      scopeTuple == <<compValue, kindValue, yearValue>>
+      scopeKey == ScopeKeyBuilder[scopeTuple]
+      prevSerial == serialCounters[scopeKey]
+      nextSerial == prevSerial + 1
+      serialValue == SerialFormatter[nextSerial]
+      checksumValue == ChecksumFunction[<<compValue, kindValue, yearValue, serialValue>>]
+      newDocID == ComposeDocID[<<compValue, kindValue, yearValue, serialValue, checksumValue>>]
+      newIndexEntry == [path |-> path, docType |-> docType, metadata |-> docs[path].metadata]
+  IN [
+       scopeKey |-> scopeKey,
+       prevSerial |-> prevSerial,
+       nextSerial |-> nextSerial,
+       docID |-> newDocID,
+       indexEntry |-> newIndexEntry
+     ]
+
+(* ----------------------------------------------------------------- *)
 UniqueDocIDs ==
   \A p1, p2 \in DOMAIN docs :
     (p1 /= p2 /\ docs[p1].docID /= NoID /\ docs[p2].docID /= NoID)
       => docs[p1].docID /= docs[p2].docID
 
-(* INV-2: Index IDs are unique - enforced by function type [DocID -> ...] *)
-UniqueIndexIDs == TRUE  \* Guaranteed by TLA+ function type
+UniqueIndexIDs == TRUE
 
-(* INV-3: Document is source of truth - doc_id matches index *)
 DocIndexConsistency ==
   \A p \in DOMAIN docs :
     docs[p].docID /= NoID =>
-      (\E id \in DOMAIN index :
-        /\ index[id].path = p
-        /\ id = docs[p].docID)
+      (\E id \in DOMAIN index : index[id].path = p /\ id = docs[p].docID)
 
-(* INV-4: All indexed documents exist *)
 IndexedDocsExist ==
-  \A id \in DOMAIN index :
-    \E p \in DOMAIN docs :
-      index[id].path = p
+  \A id \in DOMAIN index : \E p \in DOMAIN docs : index[id].path = p
 
-(* INV-5: All documents with doc_id are indexed *)
 AllDocsIndexed ==
   \A p \in DOMAIN docs :
     docs[p].docID /= NoID =>
-      \E id \in DOMAIN index :
-        index[id].path = p
+      \E id \in DOMAIN index : index[id].path = p
 
-(* INV-6: Index paths are unique (bijection) *)
 UniqueIndexPaths ==
-  \A id1, id2 \in DOMAIN index :
-    id1 /= id2 => index[id1].path /= index[id2].path
+  \A id1, id2 \in DOMAIN index : id1 /= id2 => index[id1].path /= index[id2].path
 
-(* Combined system invariant *)
 MissingIDPolicyInvariant ==
   /\ (AllowMissingIDs =>
         \A p \in DOMAIN docs :
@@ -220,6 +269,18 @@ MissingIDPolicyInvariant ==
   /\ (~AllowMissingIDs =>
         \A p \in DOMAIN docs :
           gitBase[p].docID /= NoID => docs[p].docID /= NoID)
+
+ImmutabilityInvariant ==
+  ForbidIDChange =>
+    \A p \in (DOMAIN gitBase \cap DOMAIN docs) :
+      (gitBase[p].docID /= NoID /\ docs[p].docID /= NoID)
+        => gitBase[p].docID = docs[p].docID
+
+PatchAtomicityInvariant ==
+  patchBuffer.status = "pending" =>
+    /\ docs[patchBuffer.path].docID = NoID
+    /\ patchBuffer.docID \notin UsedDocIDs
+    /\ patchBuffer.docID \notin IndexedDocIDs
 
 SystemInvariant ==
   /\ UniqueDocIDs
@@ -229,103 +290,189 @@ SystemInvariant ==
   /\ AllDocsIndexed
   /\ UniqueIndexPaths
   /\ MissingIDPolicyInvariant
+  /\ ImmutabilityInvariant
+  /\ PatchAtomicityInvariant
 
-(* Immutability invariant: Existing doc_ids never change *)
-ImmutabilityInvariant ==
-  ForbidIDChange =>
-    \A p \in (DOMAIN gitBase \cap DOMAIN docs) :
-      (gitBase[p].docID /= NoID /\ docs[p].docID /= NoID)
-        => gitBase[p].docID = docs[p].docID
-
-----
-
-(*
-OPERATIONS
-*)
-
-(* LINT: Read-only validation - returns error set but doesn't modify state *)
+(* ----------------------------------------------------------------- *)
 Lint(baseRef) ==
   /\ history' = Append(history, [op |-> "lint", params |-> baseRef])
-  /\ UNCHANGED <<docs, index, gitBase, serialCounters>>
-  \* Note: Errors are computed but not stored in state (read-only)
+  /\ UNCHANGED <<docs, index, gitBase, serialCounters, patchBuffer, serviceLog, nextRequestId, activeStream, streamEvents>>
 
-(* Git checkout: Update base reference for immutability checking *)
+Scan(format) ==
+  /\ history' = Append(history, [op |-> "scan", params |-> format])
+  /\ UNCHANGED <<docs, index, gitBase, serialCounters, patchBuffer, serviceLog, nextRequestId, activeStream, streamEvents>>
+
 GitCheckout(ref) ==
-  /\ gitBase' = docs  \* Snapshot current state as base
+  /\ gitBase' = docs
   /\ history' = Append(history, [op |-> "gitCheckout", params |-> ref])
-  /\ UNCHANGED <<docs, index, serialCounters>>
+  /\ UNCHANGED <<docs, index, serialCounters, patchBuffer, serviceLog, nextRequestId, activeStream, streamEvents>>
 
-(* ASSIGN: Generate and assign new doc_id to a document *)
-(* This is the only state-modifying operation in v0.1 *)
-Assign(path) ==
-  /\ path \in DOMAIN docs
-  /\ docs[path].docID = NoID  \* Can only assign to documents without ID
+ServiceLint ==
+  \E baseRef \in GitRefs, streaming \in BOOLEAN :
+    LET currId == nextRequestId
+        status == LintStatus
+        exitCode == StatusExit(status)
+        errCode == LintErrorCode(status)
+        startEvent == [requestId |-> currId, phase |-> "start", status |-> status, exitCode |-> exitCode, docPath |-> NoPath]
+    IN
+      /\ nextRequestId < MaxRequests
+      /\ history' = Append(history, [op |-> "lint", params |-> baseRef])
+      /\ serviceLog' = Append(serviceLog, [
+            id |-> currId,
+            endpoint |-> "lint",
+            exitCode |-> exitCode,
+            errorCode |-> errCode,
+            mutates |-> FALSE,
+            dryRun |-> TRUE
+          ])
+      /\ nextRequestId' = currId + 1
+      /\ IF streaming
+            THEN /\ activeStream.status = "idle"
+                 /\ activeStream' = [
+                      status |-> "active",
+                      requestId |-> currId,
+                      finalExit |-> exitCode,
+                      worstStatus |-> status,
+                      emittedFinal |-> FALSE
+                    ]
+                 /\ streamEvents' = Append(streamEvents, startEvent)
+          ELSE /\ activeStream' = activeStream
+               /\ streamEvents' = streamEvents
+      /\ UNCHANGED <<docs, index, gitBase, serialCounters, patchBuffer>>
 
-  \* Generate new doc_id (abstracted - actual implementation uses dimension handlers)
-  /\ LET
-       \* Get document metadata to determine dimension values
-       docType == docs[path].docType
+ServiceScan ==
+  \E format \in ScanFormats :
+    LET currId == nextRequestId
+    IN
+      /\ nextRequestId < MaxRequests
+      /\ history' = Append(history, [op |-> "scan", params |-> format])
+      /\ serviceLog' = Append(serviceLog, [
+            id |-> currId,
+            endpoint |-> "scan",
+            exitCode |-> 0,
+            errorCode |-> "OK",
+            mutates |-> FALSE,
+            dryRun |-> TRUE
+          ])
+      /\ nextRequestId' = currId + 1
+      /\ streamEvents' = streamEvents
+      /\ activeStream' = activeStream
+      /\ UNCHANGED <<docs, index, gitBase, serialCounters, patchBuffer>>
 
-       \* Enum dimensions follow select.by_path and doc_type mapping rules
-       compValue == EnumSelection[path]
-       kindValue == KindMapping[docType]
+ServiceAssignPrepare ==
+  /\ patchBuffer.status = "idle"
+  /\ nextRequestId < MaxRequests
+  /\ \E path \in PathsSubset, dryRun \in BOOLEAN :
+        ( /\ path \in DOMAIN docs
+          /\ docs[path].docID = NoID
+          /\ LET derived == AssignDerived(path)
+             IN (
+               /\ derived.nextSerial <= MaxSerialPerScope
+               /\ derived.docID \notin UsedDocIDs
+               /\ derived.docID \notin IndexedDocIDs
+               /\ patchBuffer' = [
+                    status |-> "pending",
+                    path |-> path,
+                    docID |-> derived.docID,
+                    indexEntry |-> derived.indexEntry,
+                    scopeKey |-> derived.scopeKey,
+                    nextSerial |-> derived.nextSerial,
+                    prevSerial |-> derived.prevSerial,
+                    dryRun |-> dryRun,
+                    requestId |-> nextRequestId
+                  ]
+               /\ nextRequestId' = nextRequestId + 1
+               /\ history' = Append(history, [op |-> "assignPlan", params |-> path])
+               /\ UNCHANGED <<docs, index, gitBase, serialCounters, serviceLog, activeStream, streamEvents>>
+             ))
 
-       \* Year dimension (from metadata source abstraction)
-       yearValue == YearSelection[path]
+PatchApply ==
+  /\ patchBuffer.status = "pending"
+  /\ ~patchBuffer.dryRun
+  /\ docs[patchBuffer.path].docID = NoID
+  /\ patchBuffer.docID \notin UsedDocIDs
+  /\ patchBuffer.docID \notin IndexedDocIDs
+  /\ serialCounters[patchBuffer.scopeKey] = patchBuffer.prevSerial
+  /\ LET path == patchBuffer.path IN
+       /\ docs' = [docs EXCEPT ![path].docID = patchBuffer.docID]
+       /\ index' = index @@ (patchBuffer.docID :> patchBuffer.indexEntry)
+       /\ serialCounters' = [serialCounters EXCEPT ![patchBuffer.scopeKey] = patchBuffer.nextSerial]
+       /\ patchBuffer' = PatchIdle
+       /\ serviceLog' = Append(serviceLog, [
+             id |-> patchBuffer.requestId,
+             endpoint |-> "assign",
+             exitCode |-> 0,
+             errorCode |-> "OK",
+             mutates |-> TRUE,
+             dryRun |-> FALSE
+           ])
+       /\ history' = Append(history, [op |-> "assignCommit", params |-> path])
+  /\ UNCHANGED <<gitBase, nextRequestId, activeStream, streamEvents>>
 
-       \* Serial dimension - increment counter for this scope
-       scopeTuple == <<compValue, kindValue, yearValue>>
-       scopeKey == ScopeKeyBuilder[scopeTuple]
-       nextSerial == IF scopeKey \in DOMAIN serialCounters
-                     THEN serialCounters[scopeKey] + 1
-                     ELSE 1
-       serialValue == SerialFormatter[nextSerial]
+DiscardNeeded ==
+  patchBuffer.status = "pending" /\ (
+    patchBuffer.dryRun \/
+    docs[patchBuffer.path].docID /= NoID \/
+    patchBuffer.docID \in UsedDocIDs \/
+    patchBuffer.docID \in IndexedDocIDs \/
+    serialCounters[patchBuffer.scopeKey] /= patchBuffer.prevSerial
+  )
 
-       \* Checksum dimension (mod26AZ abstraction)
-       checksumValue == ChecksumFunction[<<compValue, kindValue, yearValue, serialValue>>]
+PatchDiscard ==
+  /\ DiscardNeeded
+  /\ LET reason == IF patchBuffer.dryRun THEN "dryRun" ELSE "conflict" IN
+     /\ patchBuffer' = PatchIdle
+     /\ docs' = docs
+     /\ index' = index
+     /\ serialCounters' = serialCounters
+     /\ serviceLog' = Append(serviceLog, [
+           id |-> patchBuffer.requestId,
+           endpoint |-> "assign",
+           exitCode |-> IF reason = "dryRun" THEN 0 ELSE 2,
+           errorCode |-> IF reason = "dryRun" THEN "ASSIGN_DRY_RUN" ELSE "ASSIGN_CONFLICT",
+           mutates |-> FALSE,
+           dryRun |-> patchBuffer.dryRun
+         ])
+     /\ history' = Append(history, [op |-> "assignDiscard", params |-> patchBuffer.path])
+     /\ UNCHANGED <<gitBase, nextRequestId, activeStream, streamEvents>>
 
-       \* Construct new doc_id (abstracted to avoid string concat issues)
-       newDocID == ComposeDocID[<<compValue, kindValue, yearValue, serialValue, checksumValue>>]
+StreamEmitDoc ==
+  /\ activeStream.status = "active"
+  /\ Len(streamEvents) < MaxStreamEvents
+  /\ \E path \in DOMAIN docs, status \in StreamStatuses :
+        LET newWorst == CombineStatus(activeStream.worstStatus, status)
+            event == [requestId |-> activeStream.requestId, phase |-> "doc", status |-> status, exitCode |-> StatusExit(status), docPath |-> path]
+        IN
+          /\ streamEvents' = Append(streamEvents, event)
+          /\ activeStream' = [activeStream EXCEPT !.worstStatus = newWorst]
+          /\ UNCHANGED <<docs, index, gitBase, serialCounters, history, patchBuffer, serviceLog, nextRequestId>>
 
-       \* Create index entry
-       newIndexEntry == [
-         path |-> path,
-         docType |-> docType,
-         metadata |-> docs[path].metadata
+StreamEmitFinal ==
+  /\ activeStream.status = "active"
+  /\ ~activeStream.emittedFinal
+  /\ activeStream.finalExit = StatusExit(activeStream.worstStatus)
+  /\ Len(streamEvents) < MaxStreamEvents
+  /\ LET finalEvent == [
+         requestId |-> activeStream.requestId,
+         phase |-> "summary",
+         status |-> activeStream.worstStatus,
+         exitCode |-> activeStream.finalExit,
+         docPath |-> NoPath
        ]
      IN
-       /\ nextSerial <= MaxSerialPerScope  \* Don't overflow serial counter
-       /\ newDocID \notin UsedDocIDs        \* Ensure uniqueness
-       /\ newDocID \notin IndexedDocIDs
+       /\ streamEvents' = Append(streamEvents, finalEvent)
+       /\ activeStream' = ActiveStreamIdle
+       /\ UNCHANGED <<docs, index, gitBase, serialCounters, history, patchBuffer, serviceLog, nextRequestId>>
 
-       \* Update document
-       /\ docs' = [docs EXCEPT ![path].docID = newDocID]
-
-       \* Update index
-       /\ index' = index @@ (newDocID :> newIndexEntry)
-
-       \* Update serial counter
-       /\ serialCounters' = [serialCounters EXCEPT ![scopeKey] = nextSerial]
-
-       \* Record operation
-       /\ history' = Append(history, [
-            op |-> "assign",
-            params |-> path  \* Simplified to string for type checking
-          ])
-
-       \* Git base unchanged (only modified by GitCheckout)
-       /\ UNCHANGED gitBase
-
-----
-
-(*
-SPECIFICATION
-*)
-
-(* Fairness: Ensure assign operations eventually execute for all pending documents *)
-Fairness ==
-  /\ WF_<<docs, index, gitBase, serialCounters, history>>(\E p \in Paths : Assign(p))
-  /\ WF_<<docs, index, gitBase, serialCounters, history>>(\E ref \in GitRefs : GitCheckout(ref))
+Next ==
+  \/ ServiceLint
+  \/ ServiceScan
+  \/ ServiceAssignPrepare
+  \/ PatchApply
+  \/ PatchDiscard
+  \/ StreamEmitDoc
+  \/ StreamEmitFinal
+  \/ \E ref \in GitRefs : GitCheckout(ref)
 
 Init ==
   /\ docs = [p \in PathsSubset |-> [
@@ -333,7 +480,7 @@ Init ==
        docType |-> "",
        metadata |-> [k \in MetadataKeys |-> ""]
      ]]
-  /\ index = [id \in {} |-> [path |-> "", docType |-> "", metadata |-> [k \in MetadataKeys |-> ""]]]  \* Empty initially
+  /\ index = [d \in {} |-> [path |-> NoPath, docType |-> "", metadata |-> [k \in MetadataKeys |-> ""]]]
   /\ gitBase = [p \in PathsSubset |-> [
        docID |-> InitialDocIDs[p],
        docType |-> "",
@@ -341,106 +488,37 @@ Init ==
      ]]
   /\ serialCounters = [k \in ScopeKeys |-> 0]
   /\ history = <<>>
+  /\ patchBuffer = PatchIdle
+  /\ serviceLog = <<>>
+  /\ nextRequestId = 0
+  /\ activeStream = ActiveStreamIdle
+  /\ streamEvents = <<>>
 
-Next ==
-  \/ \E p \in Paths : Assign(p)
-  \/ \E ref \in GitRefs : GitCheckout(ref)
-  \/ \E ref \in GitRefs : Lint(ref)
+Spec == Init /\ [][Next]_<<docs, index, gitBase, serialCounters, history, patchBuffer, serviceLog, nextRequestId, activeStream, streamEvents>>
 
-Spec == Init /\ [][Next]_<<docs, index, gitBase, serialCounters, history>> /\ Fairness
-
-----
-
-(*
-TEMPORAL PROPERTIES
-*)
-
-(* SAFETY: System invariants always hold *)
+(* ----------------------------------------------------------------- *)
 AlwaysValid == []SystemInvariant
 
-(* SAFETY: Lint never modifies state *)
-LintReadOnly ==
-  [](\A i \in 1..Len(history) :
-      history[i].op = "lint" =>
-        \* State before and after lint is identical
-        \* (This is enforced by Lint action, but we assert it here)
-        TRUE)
+ServiceReadOnly == \A entry \in SeqElems(serviceLog) :
+  entry.endpoint \in {"lint", "scan"} => entry.mutates = FALSE
 
-(* SAFETY: Assign preserves invariants *)
-AssignPreservesInvariants ==
-  [](\A i \in 1..Len(history) :
-      history[i].op = "assign" => SystemInvariant)
+ServiceErrorCodesTotal == \A entry \in SeqElems(serviceLog) : entry.errorCode \in ErrorCodes
 
-(* SAFETY: Immutability never violated after GitCheckout *)
-ImmutabilityNeverViolated ==
-  [](\A i, j \in 1..Len(history) :
-      (i < j /\ history[i].op = "gitCheckout") =>
-        ImmutabilityInvariant)
+StreamFinalConsistent == \A event \in SeqElems(streamEvents) :
+  event.phase = "summary" =>
+    \E entry \in SeqElems(serviceLog) :
+      entry.id = event.requestId /\ entry.exitCode = event.exitCode
 
-(* SAFETY: Missing ID policy (allowance only for new docs) always enforced *)
-MissingIDPolicyAlways ==
-  []MissingIDPolicyInvariant
-
-(* LIVENESS: Valid assign requests eventually succeed *)
-(* Note: In v0.1, assign is manual CLI command, so this is aspirational *)
 AssignEventuallySucceeds ==
   \A p \in Paths :
-    (p \in DOMAIN docs /\ docs[p].docID = NoID) ~>
-      \E id \in DocIDs : docs[p].docID = id
+    (p \in DOMAIN docs /\ docs[p].docID = NoID)
+      ~> docs[p].docID /= NoID
 
-----
-
-(*
-MODEL CHECKING CONFIGURATION
-NOTE: Test constants are defined in apalache.cfg
-*)
-
-(* Constraint: Limit state space for TLC model checking *)
 StateConstraint ==
-  /\ Len(history) <= MaxHistory           \* Bound history length
-  /\ Cardinality(DOMAIN docs) <= MaxDocs  \* Bound number of documents
-  /\ DOMAIN docs \subseteq PathsSubset    \* Constrain paths to finite subset
-
-(* Fairness: Ensure assign operations eventually execute for all pending documents *)
-
-
-----
-
-(*
-THEOREMS (verified by TLC as invariants/properties)
-These are expressed as invariants rather than THEOREM syntax for TLC compatibility
-*)
-
-\* Note: Inductiveness checks removed (not needed for standard model checking)
-
-(* Check: Assign maintains uniqueness *)
-AssignMaintainsUniquenessCheck ==
-  []SystemInvariant  \* If this holds, Assign preserves it
+  /\ Len(history) <= MaxHistory
+  /\ Len(serviceLog) <= MaxServiceLog
+  /\ Len(streamEvents) <= MaxStreamEvents
+  /\ nextRequestId <= MaxRequests
+  /\ DOMAIN docs \subseteq PathsSubset
 
 =====================================================================
-
-(*
-VERIFICATION NOTES
-
-This TLA+ spec models the core temporal properties of Shirushi:
-1. State transitions (Init, Assign, Lint, GitCheckout)
-2. Invariant preservation
-3. Immutability enforcement
-4. Read-only guarantees
-
-Limitations (see VERIFICATION_STRATEGY.md):
-- ParseDocID and ComputeChecksum are axiomatically assumed correct
-- Dimension generation logic is simplified (actual impl is more complex)
-- File I/O operations are not modeled
-- Git operations are simplified to linear history
-
-Verification approach:
-- TLC model checking with bounded state space (StateConstraint)
-- Invariant checking at every step
-- Temporal property verification (safety + liveness)
-- Property-based tests verify abstract functions separately
-
-To run TLC:
-  java -jar tla2tools.jar -config shirushi.cfg shirushi.tla
-
-*)

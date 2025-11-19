@@ -39,12 +39,16 @@ This document explains the verification approach for Shirushi, combining formal 
 - Immutability properties across time
 - Concurrent operation correctness (if applicable in future)
 - Liveness properties (e.g., "assign eventually succeeds for valid input")
+- Service adapter contracts (`serviceLog`, error codes, streaming exit codes)
+- Assign patch buffer atomicity (prepare/apply/discard)
 
 **Focus areas:**
 - `lint` is truly read-only (no state mutation)
 - `assign` preserves all invariants
 - Git `--base` comparison correctly detects ID changes
 - Configフラグ（`allow_missing_id_in_new_files`, `forbid_id_change`）を TLA+ の定数として表現し、ポリシーに応じた制約を常に評価
+- `serviceLog` entries always use whitelisted error codes and reflect actual mutations
+- `StreamEvents` start→doc→summary orderingと exit code 一貫性
 - No race conditions in future concurrent implementations
 
 ### Layer 3: Property-Based Testing (fast-check)
@@ -95,7 +99,11 @@ fc.assert(
 | Immutability | ✓ | ✓✓✓ | ✓ | ✓ |
 | Missing ID policy | — | ✓✓ | ✓ | ✓ |
 | Index consistency | ✓✓✓ | ✓ | ✓ | ✓ |
-| Dimension validation | ✓ | — | ✓✓✓ | ✓ |
+| Dimension validation (handlers) | ✓✓ (handler predicates) | — | ✓✓✓ | ✓ |
+| Assign patch buffer atomicity | — | ✓✓✓ (`ServiceAssign*`) | ✓ | ✓ |
+| Service log / error codes | — | ✓✓✓ (`serviceLog`) | ✓ | ✓ |
+| Streaming exit code consistency | ✓ (`LintEvent` schema) | ✓✓✓ (`StreamEvents`) | ✓ | ✓ |
+| Config → formal-sync parity | ✓ (generated constants) | ✓ (generated constants) | ✓ | ✓ |
 | CLI correctness | — | — | ✓ | ✓✓✓ |
 | Git integration | ✓ | ✓✓ | ✓ | ✓✓✓ |
 
@@ -107,6 +115,7 @@ fc.assert(
 
 ## Verification Workflow
 
+0. **Config sync**: Run `shirushi formal-sync` to regenerate Alloy/TLA+ constants from `.shirushi.yml`
 1. **Design phase**: Write Alloy model, check assertions
 2. **Specification phase**: Write TLA+ spec, model check temporal properties
 3. **Implementation phase**:
@@ -117,7 +126,7 @@ fc.assert(
    - Run property tests (100,000+ iterations)
    - Run integration tests
    - Run mutation tests on critical modules
-5. **CI phase**: All layers run on every commit
+5. **CI phase**: formal-sync → Docker `verify` (TLC + Alloy) → property/integration suites
 
 ## Known Limitations
 

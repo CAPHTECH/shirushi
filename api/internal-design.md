@@ -74,34 +74,38 @@ Usage assumptions: single user (local MCP / CI) running sequential operations. N
 | Serial reservation               | Alloy `uniqueSerialsInScope`; TLA+ `serialCounters' = serialCounters @@ {...}` |
 | Checksum recomputation           | Alloy `validChecksum`; TLA+ `checksumValue`.                                  |
 | Atomic doc/index patch           | TLA+ `Assign` updates `docs`/`index` in same step; Alloy `docIndexConsistency`. |
-| Dry-run / write toggle           | Implementation detail; not modeled (state remains unchanged).                 |
+| Dry-run / write toggle           | TLA+ `ServiceAssignPrepare/Apply/Discard`, `PatchAtomicityInvariant`.         |
+
+### 5.2 Patch Buffer Implementation Notes
+
+- Core は `PatchBuffer` を `{path, docPatch, indexPatch, scopeKey, nextSerial, prevSerial, requestId, dryRun}` で表現し、TLA+ でも同構造を使用する。
+- CLI `assign.prepare` はファイルシステムを更新しない。`assign.apply` のみ doc/index/serialCounter を更新し、`history`/`serviceLog` に `assignCommit` を残す。
+- `assign.discard` は `--dry-run` または競合発生時 (doc が既に ID を持つ / serial が進んだ / 同じ ID が index に存在) に呼ばれ、`serviceLog.errorCode` に `ASSIGN_DRY_RUN` もしくは `ASSIGN_CONFLICT` を設定する。
+- Git immutability チェックは `PatchBuffer` に保存したスナップショットと比較し、差分検出時に discard する。
 
 ## 6. Extension Hooks
 
-- **API/MCP Adapter**: Expose `ShirushiService` interface around context + validator/generator.
-- **Daemon Mode**: Wrap scanner + validator with file watcher; reuse reporters to push incremental diagnostics.
+- **API/MCP Adapter**: `ShirushiService` exposes `lint`, `scan`, `assign.prepare`, `assign.apply`, `assign.discard`. Each call pushes an entry to `serviceLog`, mirroring the TLA+ `Service*` actions.
+- **Daemon Mode**: `StreamEmitter` wraps validator output and produces `{requestId, phase, status}` events. It shares the same `serviceLog`/`activeStream` watermarks as the formal model.
 
-### 6.1 Service Layer Formalization (Planned)
+### 6.1 Service Layer Formalization
 
-Define a TLA+ adapter module (`ShirushiService`) capturing request/response contracts:
+The new TLA+ section extends the system with service-aware variables:
 
 ```
-CONSTANTS LintReq, LintRes, ScanReq, ScanRes
+VARIABLES serviceLog, nextRequestId, activeStream
 
-LintAPI(req, res) ==
-  req \in LintReq /\ res \in LintRes /\
-  \* req fields optional -> defaults applied
-  res.result = Validator(req.config, req.baseRef)
-
-SpecService == InitService /\ [][NextService]_vars /\ SafeProperties
+ServiceLint(req) == Lint(req.baseRef) /\ Append(serviceLog, ...)
+ServiceAssignPrepare(req) == AssignPrepare(req.path, req.dryRun)
+ServiceAssignCommit == ApplyPatch
+ServiceAssignDiscard == DiscardPatch
 ```
 
-Key properties:
-- **APIReadOnly**: `lint`/`scan` endpoints do not mutate documents/index (mirrors CLI lint property).
-- **AssignWritesAtomic**: When `assign` endpoint succeeds, doc/index patches are applied in the same step (reuses CLI assign invariant).
-- **ErrorCodeTotality**: Every failure path returns a defined error code (modeled as enumeration in Alloy/TLA+).
-
-This adapter ensures MCP/REST clients inherit the same guarantees as CLI users.
+Verified properties:
+- **ServiceReadOnly**: all `lint`/`scan` log entries have `mutates = FALSE`.
+- **ServiceErrorCodesTotal**: `serviceLog.errorCode` ∈ `{OK, VALIDATION_ERROR, ALLOW_MISSING_ID, ASSIGN_DRY_RUN, ASSIGN_CONFLICT, SERVER_ERROR}`.
+- **PatchAtomicityInvariant**: doc/index edits occur only during `ServiceAssignCommit` and always update both artefacts together.
+- **StreamFinalConsistent**: streaming summary events reuse the same `requestId`/`exitCode` as their service log counterparts.
 
 ## 7. Persistence and Consistency
 
@@ -118,28 +122,41 @@ This adapter ensures MCP/REST clients inherit the same guarantees as CLI users.
 
 ## 9. Config-to-Formal Sync Plan
 
-- Provide `shirushi formal-sync` CLI/MCP command that reads `.shirushi.yml` and emits Alloy/TLA+ constant fragments under `formal/generated/`.
-- Generated files include: dimension tables, sample documents/paths, enum selections, TLA+ constants (`CompCodes`, `ScopeKeys`, etc.).
-- CI pipeline should run `formal-sync` before TLC/Alloy to guarantee formal specs match repo config.
-- Add validation step ensuring placeholder sets in generated constants equal `id_format` placeholders.
+- `shirushi formal-sync` (詳細: `formal/FORMAL_SYNC_SPEC.md`) は `.shirushi.yml` を Zod で検証後、CIR(JSON)→Alloy/TLA+ 断片を生成する。
+- 生成物: `formal/generated/alloy-constants.als`, `formal/generated/tla-constants.tla`, `formal/generated/cir.json`。git には含めず、CI と Docker verify 実行時に毎回再生成する。
+- バリデーション: placeholder 完全性、enum 値集合一致、serial scope の包含、checksum 対象次元の存在をチェック。失敗時は exit code で CI を中断。
+- ワークフロー: `npm run formal:sync && docker-compose run --rm verify` を推奨コマンドにし、PR では `--check-only` で差分検出→修正を促す。
 
-## 10. Assign & Streaming TODOs
+## 10. Dimension Handler Specifications
 
-- Simplify assign patching API for single-user workflow (local or CI).
-- Investigate streaming output for large repositories (`lint --json` streaming chunks`).
+Alloy モデルに handler ごとの predicate を追加し、DSL と実装の乖離を即座に検知できるようにした。
 
-### 10.1 Assign Flow Formalization (Proposed)
+| Handler | Formal Spec | Notes |
+|---------|-------------|-------|
+| `enum.selectByPath` | `firstMatchingRule(dim, path)` で最初にマッチしたルールのみ採用。PathPattern は `categories: set PathCategory` を持ち、`PatternAny` がフォールバックを提供。 | 競合するルールや未カバレッジのカテゴリがあると Alloy で反例が生成される。 |
+| `enum_from_doc_type` | `parsed[dim.name] = dim.mapping[d.doc_type]` を `enumFromDocTypeSpec` で強制。 | DocType 未登録の場合はモデルが破綻する。 |
+| `year` | `yearDimensionSpec` が `digits` に応じた値集合 (`Year4Strings`, `Year2Strings`) を適用。 | 4 桁/2 桁以外は `YearDimension` シグネチャで拒否。 |
+| `serial` | `serialHandlerSpec` が scope での増分整合性 (`prevSerial`, `nextSerial`) と digit 長を確認。 | `ValueWeight` を整数化した ranking を用いてギャップを検出。 |
+| `checksum` | 既存の `validChecksum` を handler セクションに再配置。 | `targetDims` が自分自身を参照しないことを再検証。 |
 
-(no change; see Section 5 for mapping)
+## 11. Assign & Streaming TODOs
+
+- Assign パッチ API を SDK からも利用できるようにし、MCP で dry-run→apply を分離呼び出し可能にする。
+- Streaming 出力を `lint --json --stream` 以外 (watcher/LSP) でも共通利用するため、イベントキューを抽象化する。
+
+### 11.1 Assign Flow Formalization (Future)
+
+継続トピック: 並列 assign (single-user 範囲外) を扱う際は `patchBuffer` をキュー化し、TLA+ の fairness 条件を追加する。
 
 ## 11. Formal Verification Traceability
 
 | Internal Concern                        | Formal Coverage                                                           |
 |-----------------------------------------|----------------------------------------------------------------------------|
-| Config + dimension semantics            | Alloy `ShirushiConfig` facts, `validDocIDFormat`, `validateDimensionValue` |
-| Doc/index bijection, serial scope       | Alloy `docIndexConsistency`, `uniqueSerialsInScope`                        |
-| Lint immutability / read-only guarantee | TLA+ `Lint` action, `ImmutabilityInvariant`, `LintReadOnly`                |
-| Assign state transition safety          | TLA+ `Assign` action + `AssignPreservesInvariants`                         |
+| Config + dimension semantics            | Alloy `ShirushiConfig` facts, handler predicates (`enumSelectByPath`, etc.)|
+| Doc/index bijection, serial scope       | Alloy `docIndexConsistency`, `uniqueSerialsInScope`, `serialHandlerSpec`   |
+| Lint immutability / read-only guarantee | TLA+ `ServiceLint`, `ServiceReadOnly`, `ImmutabilityInvariant`             |
+| Assign state transition safety          | TLA+ `ServiceAssign*`, `PatchAtomicityInvariant`, `AssignPreservesInvariants` |
 | Missing-ID policy vs. git diff          | TLA+ `MissingIDPolicyInvariant`                                           |
+| Streaming exit code consistency         | TLA+ `StreamEvents`, `StreamFinalConsistent`; Alloy `LintEvent` schema     |
 
 > When modifying modules listed above, update the corresponding Alloy/TLA+ properties to keep the guarantees in sync.

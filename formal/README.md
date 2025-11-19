@@ -19,6 +19,8 @@ This directory contains formal verification artifacts for the Shirushi document 
 **Documentation:**
 - **`VERIFICATION_STRATEGY.md`** - Comprehensive verification approach documentation
 - **`CI_INTEGRATION_DESIGN.md`** - CI/CD integration design and architecture
+- **`FORMAL_SYNC_SPEC.md`** - Config→formal constant generation CLI specification
+- **`DESIGN_DIALOGUE.md`** - Two-role architecture discussion log (decision trace)
 - **`README.md`** - This file
 
 ## Quick Start
