@@ -95,6 +95,7 @@ export type DimensionDefinition = ShirushiConfig['dimensions'][string];
 const PLACEHOLDER_REGEX = /\{([A-Za-z0-9_]+)\}/g;
 
 export function extractTemplatePlaceholders(template: string): string[] {
+  PLACEHOLDER_REGEX.lastIndex = 0;
   const matches: string[] = [];
   const seen = new Set<string>();
   let result: RegExpExecArray | null;
