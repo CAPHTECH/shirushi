@@ -1,3 +1,11 @@
+---
+doc_id: SHI-ADR-2025-0101
+title: ADR-XXXX: Template
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # ADR-XXXX: [Title]
 
 **Status**: [Proposed | Accepted | Deprecated | Superseded]

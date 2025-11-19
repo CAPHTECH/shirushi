@@ -1,3 +1,11 @@
+---
+doc_id: SHI-FORMAL-2025-0001
+title: Shirushi Formal Specifications
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi Formal Specifications
 
 This directory contains formal verification artifacts for the Shirushi document ID management system using **Alloy** and **TLA+**.

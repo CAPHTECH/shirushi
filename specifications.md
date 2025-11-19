@@ -1,3 +1,11 @@
+---
+doc_id: SHI-SPEC-2025-0001
+title: Shirushi 仕様書
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi 仕様書
 
 バージョン: 0.1.0  

@@ -1,3 +1,11 @@
+---
+doc_id: SHI-ADR-2025-0100
+title: Architecture Decision Records (ADRs)
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Architecture Decision Records (ADRs)
 
 This directory contains Architecture Decision Records for the Shirushi project.

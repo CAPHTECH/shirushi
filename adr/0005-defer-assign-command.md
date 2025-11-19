@@ -1,3 +1,11 @@
+---
+doc_id: SHI-ADR-2025-0005
+title: ADR-0005: Defer assign Command to v0.2
+version: "1.0.0"
+status: Accepted
+created_at: 2025-01-19
+---
+
 # ADR-0005: Defer assign Command to v0.2
 
 **Status**: Accepted

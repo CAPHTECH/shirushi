@@ -1,0 +1,36 @@
+# Shirushi self-hosted documentation config
+# Ensures all docs/ Markdown & YAML files carry doc_id values managed by Shirushi itself
+
+doc_globs:
+  - "docs/**/*.md"
+
+index_file: "docs/doc_index.yaml"
+
+# ID layout: SHI-<KIND>-<YEAR>-<SERIAL>
+# Example: SHI-SPEC-2025-0001
+id_format: "SHI-{KIND}-{YEAR}-{SERIAL}"
+
+dimensions:
+  KIND:
+    type: enum
+    values:
+      - "SPEC"
+      - "API"
+      - "INT"
+      - "GUIDE"
+      - "USER"
+      - "FORMAL"
+      - "ADR"
+  YEAR:
+    type: year
+    digits: 4
+    source: "created_at"
+  SERIAL:
+    type: serial
+    digits: 4
+    scope:
+      - "KIND"
+      - "YEAR"
+
+forbid_id_change: true
+allow_missing_id_in_new_files: false

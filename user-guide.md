@@ -1,3 +1,11 @@
+---
+doc_id: SHI-USER-2025-0001
+title: Shirushi User Guide
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi User Guide
 
 This guide will help you get started with Shirushi and use it effectively in your projects.

@@ -1,3 +1,11 @@
+---
+doc_id: SHI-ADR-2025-0006
+title: ADR-0006: No Gap Validation for Serial Numbers in v0.1
+version: "1.0.0"
+status: Accepted
+created_at: 2025-01-19
+---
+
 # ADR-0006: No Gap Validation for Serial Numbers in v0.1
 
 **Status**: Accepted

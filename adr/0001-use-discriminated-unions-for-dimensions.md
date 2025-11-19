@@ -1,3 +1,11 @@
+---
+doc_id: SHI-ADR-2025-0001
+title: ADR-0001: Use Discriminated Unions for Dimension Types
+version: "1.0.0"
+status: Accepted
+created_at: 2025-01-19
+---
+
 # ADR-0001: Use Discriminated Unions for Dimension Types
 
 **Status**: Accepted

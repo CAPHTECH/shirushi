@@ -1,8 +1,18 @@
+---
+doc_id: SHI-FORMAL-2025-0002
+title: Shirushi Formal Verification Strategy
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi Formal Verification Strategy
 
 ## Overview
 
 This document explains the verification approach for Shirushi, combining formal methods (Alloy/TLA+) with property-based testing to achieve comprehensive correctness guarantees.
+
+> Self-hosting note: The documentation set (`docs/specifications.md`, `docs/api/*`, guides, etc.) is now managed by Shirushi itself via `docs/.shirushi.yml` and `docs/doc_index.yaml`. Formal sync and lint runs therefore cover these files exactly like any downstream repository, preventing "紺屋の白袴" drift between specs and tooling.
 
 ## Verification Layers
 

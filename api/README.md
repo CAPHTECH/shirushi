@@ -1,3 +1,11 @@
+---
+doc_id: SHI-API-2025-0002
+title: Shirushi API Documentation
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi API Documentation
 
 This directory contains API documentation for Shirushi's internal modules.

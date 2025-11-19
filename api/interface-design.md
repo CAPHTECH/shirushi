@@ -1,3 +1,11 @@
+---
+doc_id: SHI-API-2025-0001
+title: Shirushi Interface Design
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi Interface Design
 
 ## 1. Overview

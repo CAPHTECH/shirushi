@@ -1,3 +1,11 @@
+---
+doc_id: SHI-GUIDE-2025-0001
+title: Shirushi Developer Guide
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi Developer Guide
 
 This guide explains how to contribute to Shirushi, extend its functionality, and understand its internal architecture.

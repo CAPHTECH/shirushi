@@ -1,3 +1,11 @@
+---
+doc_id: SHI-ADR-2025-0007
+title: ADR-0007: Manual Index Synchronization Only
+version: "1.0.0"
+status: Accepted
+created_at: 2025-01-19
+---
+
 # ADR-0007: Manual Index Synchronization Only
 
 **Status**: Accepted

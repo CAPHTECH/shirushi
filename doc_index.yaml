@@ -1,0 +1,121 @@
+documents:
+  - doc_id: SHI-SPEC-2025-0001
+    path: docs/specifications.md
+    title: Shirushi 仕様書
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-API-2025-0001
+    path: docs/api/interface-design.md
+    title: Shirushi Interface Design
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-API-2025-0002
+    path: docs/api/README.md
+    title: Shirushi API Documentation
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-INT-2025-0001
+    path: docs/api/internal-design.md
+    title: Shirushi Internal Design
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-GUIDE-2025-0001
+    path: docs/developer-guide.md
+    title: Shirushi Developer Guide
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-USER-2025-0001
+    path: docs/user-guide.md
+    title: Shirushi User Guide
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-FORMAL-2025-0001
+    path: docs/formal/README.md
+    title: Shirushi Formal Specifications
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-FORMAL-2025-0002
+    path: docs/formal/VERIFICATION_STRATEGY.md
+    title: Shirushi Formal Verification Strategy
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-FORMAL-2025-0003
+    path: docs/formal/FORMAL_SYNC_SPEC.md
+    title: "shirushi formal-sync 仕様"
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-FORMAL-2025-0004
+    path: docs/formal/CI_INTEGRATION_DESIGN.md
+    title: Formal Verification CI Integration Design
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-FORMAL-2025-0005
+    path: docs/formal/DESIGN_DIALOGUE.md
+    title: 2025-11-19 アーキテクチャ設計レビュー対話ログ
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-ADR-2025-0001
+    path: docs/adr/0001-use-discriminated-unions-for-dimensions.md
+    title: ADR-0001: Use Discriminated Unions for Dimension Types
+    version: "1.0.0"
+    status: Accepted
+    created_at: "2025-01-19"
+  - doc_id: SHI-ADR-2025-0002
+    path: docs/adr/0002-zod-for-configuration-validation.md
+    title: ADR-0002: Use Zod for Configuration Validation
+    version: "1.0.0"
+    status: Accepted
+    created_at: "2025-01-19"
+  - doc_id: SHI-ADR-2025-0003
+    path: docs/adr/0003-document-is-source-of-truth.md
+    title: ADR-0003: Document is Source of Truth for doc_id
+    version: "1.0.0"
+    status: Accepted
+    created_at: "2025-01-19"
+  - doc_id: SHI-ADR-2025-0004
+    path: docs/adr/0004-simple-checksum-algorithm.md
+    title: ADR-0004: Use Simple mod26AZ Checksum Algorithm
+    version: "1.0.0"
+    status: Accepted
+    created_at: "2025-01-19"
+  - doc_id: SHI-ADR-2025-0005
+    path: docs/adr/0005-defer-assign-command.md
+    title: ADR-0005: Defer assign Command to v0.2
+    version: "1.0.0"
+    status: Accepted
+    created_at: "2025-01-19"
+  - doc_id: SHI-ADR-2025-0006
+    path: docs/adr/0006-no-gap-validation-for-serials.md
+    title: ADR-0006: No Gap Validation for Serial Numbers in v0.1
+    version: "1.0.0"
+    status: Accepted
+    created_at: "2025-01-19"
+  - doc_id: SHI-ADR-2025-0007
+    path: docs/adr/0007-manual-index-synchronization.md
+    title: ADR-0007: Manual Index Synchronization Only
+    version: "1.0.0"
+    status: Accepted
+    created_at: "2025-01-19"
+  - doc_id: SHI-ADR-2025-0100
+    path: docs/adr/README.md
+    title: Architecture Decision Records (ADRs)
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"
+  - doc_id: SHI-ADR-2025-0101
+    path: docs/adr/template.md
+    title: ADR-XXXX: Template
+    version: "0.1.0"
+    status: Draft
+    created_at: "2025-11-19"

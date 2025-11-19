@@ -1,3 +1,11 @@
+---
+doc_id: SHI-INT-2025-0001
+title: Shirushi Internal Design
+version: "0.1.0"
+status: Draft
+created_at: 2025-11-19
+---
+
 # Shirushi Internal Design
 
 ## 1. Purpose
