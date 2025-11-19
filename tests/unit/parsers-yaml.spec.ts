@@ -28,4 +28,9 @@ describe('parsers/yaml', () => {
     const result = parseYamlContent('virtual.yaml', malformed);
     expect(result.problems.some((p) => p.code === 'INVALID_YAML')).toBe(true);
   });
+
+  it('reports invalid YAML when root is not an object', async () => {
+    const result = await parseYamlFile(fixture('yaml-scalar.yaml'));
+    expect(result.problems.some((p) => p.code === 'INVALID_YAML')).toBe(true);
+  });
 });

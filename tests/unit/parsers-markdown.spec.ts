@@ -21,6 +21,13 @@ describe('parsers/markdown', () => {
     expect(result.problems.some((p) => p.code === 'MISSING_ID')).toBe(true);
   });
 
+  it('reports missing doc_id when front matter does not exist', async () => {
+    const result = await parseMarkdownFile(fixture('plain.md'));
+
+    expect(result.docId).toBeUndefined();
+    expect(result.problems.some((p) => p.code === 'MISSING_ID')).toBe(true);
+  });
+
   it('reports multiple doc_id entries', async () => {
     const result = await parseMarkdownFile(fixture('spec-multi.md'));
 

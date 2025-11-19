@@ -24,7 +24,7 @@ export function parseYamlContent(path: string, content: string): DocumentParseRe
 
   try {
     const parsed = yaml.load(content);
-    if (parsed && typeof parsed === 'object') {
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       const { doc_id: candidate, ...rest } = parsed as Record<string, unknown>;
       metadata = rest;
       if (typeof candidate === 'string') {

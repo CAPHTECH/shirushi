@@ -45,7 +45,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<Loade
     throw new ConfigLoaderError(`Config file at ${resolvedPath} is not valid YAML`, { cause: error });
   }
 
-  if (raw === null || typeof raw !== 'object') {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new ConfigLoaderError('Config file must contain a YAML object at the root');
   }
 
