@@ -367,6 +367,9 @@ Markdown ファイルは、先頭に YAML front matter を持ち、その中に 
 - ファイル先頭行が `---` の場合、
   - 先頭の `---` から、次に現れる `---` 行までを YAML としてパースする。
 - その YAML オブジェクトに `doc_id` フィールドが **ちょうど 1 つ** 存在しなければならない。
+- オプションとして `status` および `superseded_by` フィールドを持つことができる。
+  - `status`: `Draft`, `Active`, `Deprecated`, `Superseded` のいずれか。
+  - `superseded_by`: `status: Superseded` の場合、後継となるドキュメントの `doc_id`。
 
 #### 7.1.2 例
 
@@ -565,6 +568,7 @@ Shirushi は `shirushi lint` 実行時に、代表的なエラーコードを用
 
 - `MISSING_ID`  
   - 対象ドキュメントに `doc_id` が存在しない。
+  - `allow_missing_id_in_new_files: true` の場合、新規ファイル（`--base` との差分で検出）についてはこのエラーは除外される。
 
 - `MULTIPLE_IDS_IN_DOCUMENT`  
   - 1 つのドキュメント内に複数の `doc_id` フィールドが存在する。

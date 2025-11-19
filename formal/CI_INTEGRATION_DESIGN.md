@@ -11,7 +11,7 @@ This document outlines the design for integrating Apalache (TLA+) and Alloy CLI 
 **Tool Information:**
 - GitHub: https://github.com/apalache-mc/apalache
 - Docker Image: `ghcr.io/apalache-mc/apalache:main`
-- Latest Release: 0.45.7+ (check releases page)
+- Latest Release: 0.51.1 (as of Nov 2025)
 - Documentation: https://apalache-mc.org/
 
 **Key Features:**
@@ -38,20 +38,21 @@ apalache-mc check --write-json --out-dir=output spec.tla
 
 ### Alloy CLI Tools
 
-**Option 1: AlloyCommandline** (Recommended)
-- GitHub: https://github.com/draftcode/AlloyCommandline
-- Language: Java
-- Runs all `run` and `check` commands in .als file
-- Simple execution: `java -jar AlloyCommandline.jar spec.als`
+**Official Alloy 6 CLI** (Selected Approach)
+- GitHub: https://github.com/AlloyTools/org.alloytools.alloy
+- Latest Version: 6.2.0
+- Direct JAR download: `org.alloytools.alloy.dist.jar`
+- SHA256: `6b8c1cb5bc93bedfc7c61435c4e1ab6e688a242dc702a394628d9a9801edb78d`
+- CLI Usage: `java -jar org.alloytools.alloy.dist.jar exec --command 0 --output - spec.als`
+- Advantages:
+  - Official distribution (most stable)
+  - No build step required
+  - SHA256 verification available
+  - Supports batch execution of all commands
 
-**Option 2: kt-alloy-cli**
-- GitHub: https://github.com/motemen/kt-alloy-cli
-- Output: TAP (Test Anything Protocol) format
-- Better for test result parsing
-
-**Option 3: Official Alloy 6 CLI**
-- `java -jar org.alloytools.alloy.dist.jar --run "Command" --file spec.als`
-- More control over individual commands
+**Alternatives Considered:**
+- AlloyCommandline: Build issues, no releases, not maintained
+- kt-alloy-cli: TAP format output, additional dependency
 
 ## Architecture Design
 
@@ -64,27 +65,21 @@ FROM eclipse-temurin:17-jre AS base
 
 # Install Apalache
 FROM base AS apalache
-ARG APALACHE_VERSION=0.45.7
-RUN apt-get update && apt-get install -y curl unzip && \
-    curl -LO https://github.com/informalsystems/apalache/releases/download/v${APALACHE_VERSION}/apalache-${APALACHE_VERSION}.zip && \
-    unzip -q apalache-${APALACHE_VERSION}.zip -d /opt/ && \
-    mv /opt/apalache-${APALACHE_VERSION} /opt/apalache && \
-    rm apalache-${APALACHE_VERSION}.zip
-
-# Install Alloy CLI
-FROM base AS alloy
-ARG ALLOY_VERSION=6.1.0
+ARG APALACHE_VERSION=0.51.1
 RUN apt-get update && apt-get install -y curl && \
-    mkdir -p /opt/alloy && \
-    curl -L https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v${ALLOY_VERSION}/org.alloytools.alloy.dist.jar \
-         -o /opt/alloy/alloy.jar
+    curl -LO https://github.com/apalache-mc/apalache/releases/download/v${APALACHE_VERSION}/apalache-${APALACHE_VERSION}.tgz && \
+    tar -xzf apalache-${APALACHE_VERSION}.tgz -C /opt/ && \
+    mv /opt/apalache-${APALACHE_VERSION} /opt/apalache && \
+    rm apalache-${APALACHE_VERSION}.tgz
 
-# Install AlloyCommandline
-RUN apt-get update && apt-get install -y git gradle && \
-    git clone https://github.com/draftcode/AlloyCommandline.git /tmp/alloy-cli && \
-    cd /tmp/alloy-cli && gradle build && \
-    cp build/libs/AlloyCommandline.jar /opt/alloy/alloy-cli.jar && \
-    rm -rf /tmp/alloy-cli
+# Install Alloy
+FROM base AS alloy
+ARG ALLOY_VERSION=6.2.0
+ARG ALLOY_SHA256=6b8c1cb5bc93bedfc7c61435c4e1ab6e688a242dc702a394628d9a9801edb78d
+RUN mkdir -p /opt/alloy && \
+    curl -L "https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v${ALLOY_VERSION}/org.alloytools.alloy.dist.jar" \
+         -o /opt/alloy/alloy.jar && \
+    echo "${ALLOY_SHA256}  /opt/alloy/alloy.jar" | sha256sum -c -
 
 # Final image
 FROM base
@@ -93,7 +88,7 @@ COPY --from=alloy /opt/alloy /opt/alloy
 
 ENV PATH="/opt/apalache/bin:${PATH}"
 ENV ALLOY_JAR="/opt/alloy/alloy.jar"
-ENV ALLOY_CLI_JAR="/opt/alloy/alloy-cli.jar"
+ENV APALACHE_HOME="/opt/apalache"
 
 WORKDIR /workspace
 ```
@@ -148,18 +143,20 @@ jobs:
           path: ~/.alloy-cli
           key: alloy-cli-${{ runner.os }}-${{ hashFiles('formal/**/*.als') }}
 
-      - name: Download AlloyCommandline
+      - name: Download Alloy JAR
         run: |
-          mkdir -p ~/.alloy-cli
-          if [ ! -f ~/.alloy-cli/AlloyCommandline.jar ]; then
-            # Build from source or download pre-built jar
-            curl -L https://github.com/draftcode/AlloyCommandline/releases/.../AlloyCommandline.jar \
-                 -o ~/.alloy-cli/AlloyCommandline.jar
+          mkdir -p ~/.alloy
+          if [ ! -f ~/.alloy/org.alloytools.alloy.dist.jar ]; then
+            curl -L "https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/org.alloytools.alloy.dist.jar" \
+                 -o ~/.alloy/org.alloytools.alloy.dist.jar
+            # Verify SHA256 checksum
+            echo "6b8c1cb5bc93bedfc7c61435c4e1ab6e688a242dc702a394628d9a9801edb78d  $HOME/.alloy/org.alloytools.alloy.dist.jar" | sha256sum -c -
           fi
 
       - name: Run Alloy Checks
         run: |
-          java -jar ~/.alloy-cli/AlloyCommandline.jar formal/shirushi.als | tee alloy-output.txt
+          cd formal
+          java -jar ~/.alloy/org.alloytools.alloy.dist.jar exec --command 0 --output - shirushi.als | tee ../alloy-output.txt
 
       - name: Upload Alloy Results
         if: always()
@@ -250,9 +247,10 @@ jobs:
 ### Caching Strategy
 
 **Tool Binaries:**
-- Cache Apalache: `~/.apalache` with key `apalache-${{ runner.os }}-{version}`
-- Cache Alloy CLI: `~/.alloy-cli` with key `alloy-cli-${{ runner.os }}-{hash}`
+- Cache Apalache: `~/.apalache` with key `apalache-${{ runner.os }}-0.51.1`
+- Cache Alloy JAR: `~/.alloy` with key `alloy-${{ runner.os }}-6.2.0`
 - Cache Docker layers: Use `docker/build-push-action` with `cache-from`/`cache-to`
+- SHA256 verification on download for security
 
 **Java Dependencies:**
 - Use `actions/setup-java` with `cache: gradle` or `cache: maven`
@@ -343,7 +341,7 @@ echo "=== Model Checking TLA+ ==="
 apalache-mc check --config=apalache.cfg --write-json --out-dir=output shirushi.tla
 
 echo "=== Checking Alloy ==="
-java -jar $ALLOY_CLI_JAR shirushi.als
+java -jar $ALLOY_JAR exec --command 0 --output - shirushi.als
 
 echo "✅ All formal verifications passed"
 ```
@@ -396,6 +394,15 @@ services:
 ## References
 
 - [Apalache Documentation](https://apalache-mc.org/docs/apalache/)
-- [AlloyCommandline GitHub](https://github.com/draftcode/AlloyCommandline)
+- [Apalache Releases](https://github.com/apalache-mc/apalache/releases)
+- [Alloy Tools Releases](https://github.com/AlloyTools/org.alloytools.alloy/releases)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
+
+## Implementation Notes
+
+This implementation was inspired by the approach used in the assay-kit project, which successfully integrates both Apalache and Alloy using:
+- Official Alloy JAR distribution (not community CLI tools)
+- SHA256 verification for all downloaded binaries
+- Docker multi-stage builds for reproducibility
+- GitHub Actions caching for performance

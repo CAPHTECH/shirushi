@@ -37,34 +37,32 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Cache Alloy CLI
+      - name: Cache Alloy JAR
         uses: actions/cache@v4
         with:
-          path: ~/.alloy-cli
-          key: alloy-cli-${{ runner.os }}-v1
+          path: ~/.alloy
+          key: alloy-${{ runner.os }}-6.2.0
           restore-keys: |
-            alloy-cli-${{ runner.os }}-
+            alloy-${{ runner.os }}-
 
-      - name: Download AlloyCommandline
+      - name: Download Alloy JAR
         run: |
-          mkdir -p ~/.alloy-cli
-          if [ ! -f ~/.alloy-cli/AlloyCommandline.jar ]; then
-            echo "Downloading AlloyCommandline..."
-            # Note: Replace with actual release URL when available
-            # For now, we'll build from source
-            git clone --depth 1 https://github.com/draftcode/AlloyCommandline.git /tmp/alloy-cli
-            cd /tmp/alloy-cli
-            gradle build
-            cp build/libs/AlloyCommandline.jar ~/.alloy-cli/AlloyCommandline.jar
+          mkdir -p ~/.alloy
+          if [ ! -f ~/.alloy/org.alloytools.alloy.dist.jar ]; then
+            echo "Downloading Alloy JAR..."
+            curl -L "https://github.com/AlloyTools/org.alloytools.alloy/releases/download/v6.2.0/org.alloytools.alloy.dist.jar" \
+                 -o ~/.alloy/org.alloytools.alloy.dist.jar
+            # Verify SHA256 checksum
+            echo "6b8c1cb5bc93bedfc7c61435c4e1ab6e688a242dc702a394628d9a9801edb78d  $HOME/.alloy/org.alloytools.alloy.dist.jar" | sha256sum -c -
           else
-            echo "Using cached AlloyCommandline"
+            echo "Using cached Alloy JAR"
           fi
 
       - name: Run Alloy Checks
         id: alloy-check
         run: |
           cd formal
-          java -jar ~/.alloy-cli/AlloyCommandline.jar shirushi.als | tee ../alloy-output.txt
+          java -jar ~/.alloy/org.alloytools.alloy.dist.jar exec --command 0 --output - shirushi.als | tee ../alloy-output.txt
         continue-on-error: true
 
       - name: Parse Alloy Results
@@ -115,7 +113,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.apalache
-          key: apalache-${{ runner.os }}-0.45.7
+          key: apalache-${{ runner.os }}-0.51.1
           restore-keys: |
             apalache-${{ runner.os }}-
 
@@ -125,11 +123,11 @@ jobs:
             echo "Downloading Apalache..."
             mkdir -p ~/.apalache
             cd ~/.apalache
-            curl -LO https://github.com/informalsystems/apalache/releases/download/v0.45.7/apalache-0.45.7.zip
-            unzip -q apalache-0.45.7.zip
-            mv apalache-0.45.7/* .
-            rmdir apalache-0.45.7
-            rm apalache-0.45.7.zip
+            curl -LO https://github.com/apalache-mc/apalache/releases/download/v0.51.1/apalache-0.51.1.tgz
+            tar -xzf apalache-0.51.1.tgz
+            mv apalache-0.51.1/* .
+            rmdir apalache-0.51.1
+            rm apalache-0.51.1.tgz
           else
             echo "Using cached Apalache"
           fi

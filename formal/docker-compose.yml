@@ -11,8 +11,8 @@ services:
     working_dir: /workspace
     command: verify-all
     environment:
-      - APALACHE_CMD=apalache-mc
-      - ALLOY_CLI_JAR=/opt/alloy/alloy-cli.jar
+      - TLA_JAR=/opt/tla/tla2tools.jar
+      - ALLOY_JAR=/opt/alloy/alloy.jar
 
   # Interactive shell for debugging
   shell:
@@ -25,21 +25,7 @@ services:
     command: bash
     stdin_open: true
     tty: true
-    environment:
-      - APALACHE_CMD=apalache-mc
-      - ALLOY_CLI_JAR=/opt/alloy/alloy-cli.jar
 
-  # Apalache only (faster for TLA+ development)
-  apalache:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    volumes:
-      - ./:/workspace
-    working_dir: /workspace
-    command: apalache-mc check --config=apalache.cfg shirushi.tla
-    environment:
-      - APALACHE_CMD=apalache-mc
 
   # Alloy only (for Alloy development)
   alloy:
@@ -49,9 +35,20 @@ services:
     volumes:
       - ./:/workspace
     working_dir: /workspace
-    command: java -jar /opt/alloy/alloy-cli.jar shirushi.als
+    command: java -jar /opt/alloy/alloy.jar exec --command 0 --output - shirushi.als
+      - ALLOY_JAR=/opt/alloy/alloy.jar
+
+  # TLC only
+  tlc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    command: java -jar /opt/tla/tla2tools.jar -config shirushi.cfg shirushi.tla
     environment:
-      - ALLOY_CLI_JAR=/opt/alloy/alloy-cli.jar
+      - TLA_JAR=/opt/tla/tla2tools.jar
 
 # Usage:
 #
@@ -61,8 +58,7 @@ services:
 # Interactive shell:
 #   docker-compose run --rm shell
 #
-# TLA+ only:
-#   docker-compose run --rm apalache
+
 #
 # Alloy only:
 #   docker-compose run --rm alloy

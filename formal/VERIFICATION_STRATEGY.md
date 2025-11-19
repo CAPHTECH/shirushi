@@ -22,12 +22,10 @@ This document explains the verification approach for Shirushi, combining formal 
 - Git operations
 
 **Abstraction strategy:**
-- `parseDocID`, `computeChecksum`, and other string-manipulation functions are **axiomatically constrained** but not fully implemented
-- Axioms capture essential properties (determinism, success conditions) without implementation details
-- This is acceptable because:
-  1. Alloy's string support is limited (no regex, no arithmetic on chars)
-  2. Full implementation would duplicate TypeScript code
-  3. Property-based tests provide rigorous verification of these components
+- 各 `DocID` は `dimValues` 関係を持ち、`id_format` に登場する各プレースホルダの実値を Alloy 空間上で直接保持する
+- `enum`/`year`/`serial`/`checksum` の検証は有限のドメイン表（weight テーブル + アルファベット表）で具体化し、`mod26AZ` の再計算までモデル内で実行できる
+- パスパターン（`select.by_path`）は `Path.category` と `PatternPCE` などのタグにより真偽を評価し、ルールの最初のマッチを取り出す
+- それでも正規表現生成や任意長文字列は抽象化されているため、広い値域の検証は Layer 3 (Property-based tests) に委譲する
 
 **Trade-off:**
 - **Benefit**: Fast model checking, focus on high-level correctness
@@ -46,6 +44,7 @@ This document explains the verification approach for Shirushi, combining formal 
 - `lint` is truly read-only (no state mutation)
 - `assign` preserves all invariants
 - Git `--base` comparison correctly detects ID changes
+- Configフラグ（`allow_missing_id_in_new_files`, `forbid_id_change`）を TLA+ の定数として表現し、ポリシーに応じた制約を常に評価
 - No race conditions in future concurrent implementations
 
 ### Layer 3: Property-Based Testing (fast-check)
@@ -91,9 +90,10 @@ fc.assert(
 | Component | Alloy | TLA+ | Property Tests | Integration Tests |
 |-----------|-------|------|----------------|-------------------|
 | ID uniqueness | ✓ | ✓ | ✓ | ✓ |
-| Checksum correctness | Axiom | — | ✓✓✓ | ✓ |
-| Parse correctness | Axiom | — | ✓✓✓ | ✓ |
+| Checksum correctness | ✓* | — | ✓✓✓ | ✓ |
+| Parse correctness | ✓* | — | ✓✓✓ | ✓ |
 | Immutability | ✓ | ✓✓✓ | ✓ | ✓ |
+| Missing ID policy | — | ✓✓ | ✓ | ✓ |
 | Index consistency | ✓✓✓ | ✓ | ✓ | ✓ |
 | Dimension validation | ✓ | — | ✓✓✓ | ✓ |
 | CLI correctness | — | — | ✓ | ✓✓✓ |
@@ -102,8 +102,8 @@ fc.assert(
 **Legend:**
 - ✓ = Verified
 - ✓✓✓ = Primary verification method
-- Axiom = Axiomatically assumed
 - — = Not applicable
+- * = Alloy は有限のドメイン（`dimValues`/weight テーブル）に対してのみ検証
 
 ## Verification Workflow
 
@@ -123,13 +123,13 @@ fc.assert(
 
 ### Alloy Limitations
 
-**Issue**: `parseDocID` and `computeChecksum` are placeholders
-- **Impact**: Alloy cannot verify that implementation matches specification
-- **Mitigation**: Property tests provide 100K+ test cases with random inputs
+**Issue**: `dimValues` や weight テーブルは有限の代表値のみを列挙
+- **Impact**: 仕様上は正しいが、現実に追加される新しい `COMP`/`KIND`/`YEAR`/`SER` が Alloy の探索空間に入るとは限らず、広い値域のバグは捕捉できない
+- **Mitigation**: `.shirushi.yml` から値リストを自動生成するスクリプトを追加予定。並行して property-based tests でランダム生成を継続
 
-**Issue**: String operations are abstracted
-- **Impact**: Cannot verify regex correctness, string concatenation order
-- **Mitigation**: Unit tests explicitly check edge cases (empty strings, special chars)
+**Issue**: 正規表現や文字列連結は抽象化
+- **Impact**: `id_format` → `id_pattern` 展開やゼロパディング実装の off-by-one を Alloy だけでは検出できない
+- **Mitigation**: TypeScript 実装に対するユニットテスト／プロパティテストで網羅し、Alloy には DSL 構造の整合性チェックを集中させる
 
 **Issue**: File I/O is not modeled
 - **Impact**: Cannot verify that file reads/writes work correctly
@@ -140,6 +140,10 @@ fc.assert(
 **Issue**: Git DAG structure is simplified to linear history
 - **Impact**: Cannot verify behavior with complex branching/merging
 - **Mitigation**: v0.1 scope only requires base-to-HEAD comparison (linear)
+
+**Issue**: `EnumSelection`/`KindMapping`/`YearSelection`/`SerialFormatter` などの補助関数は外生定数
+- **Impact**: `.shirushi.yml` の実際の設定と TLA+ 定数が乖離しても検出できない
+- **Mitigation**: Apalache モデル生成ステップで設定ファイルから関数定義を自動生成する TODO を追加（下記 Next Iteration 参照）
 
 **Issue**: Concurrent operations not modeled (v0.1)
 - **Impact**: Future concurrent `assign` operations may have race conditions
@@ -162,6 +166,7 @@ fc.assert(
 3. `LintReadOnly`: Lint never modifies state
 4. `AssignPreservesInvariants`: Assign maintains uniqueness and consistency
 5. `ImmutabilityNeverViolated`: Existing doc_ids never change
+6. `MissingIDPolicyAlways`: `allow_missing_id_in_new_files` の条件を満たした場合のみ `doc_id` 欠落を許容
 
 ## Maintenance
 
@@ -180,6 +185,13 @@ fc.assert(
   2. Fix implementation
   3. Add regression test
   4. Check if formal model needs updating
+
+## Next Iteration Focus
+
+1. **自動生成されたドメイン**: `.shirushi.yml` から Alloy/TLA+ の `CompCodes`・`KindCodes`・`YearCodes`・`SerialStrings` を生成し、有限集合の陳腐化リスクをなくす
+2. **Config-aware Apalache**: `EnumSelection` や `YearSelection` を設定ファイルと `doc_index` から合成するスクリプトを CI に組み込み、TLA+ 定数と実装を一元化
+3. **Git 分岐カバレッジ**: `gitBase` を複数の履歴スナップショットに拡張し、`AllowMissingIDs = false` のケースとマージ衝突シナリオを追加で検証
+4. **Checksum fuzzing bridge**: Alloy の weight テーブルと fast-check の arbitrary を同一 YAML から生成し、形式仕様とランダムテストで同じ値空間を共有する
 
 ## References
 

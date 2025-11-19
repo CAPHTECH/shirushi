@@ -12,6 +12,7 @@ This guide explains how to contribute to Shirushi, extend its functionality, and
 6. [Testing Strategy](#testing-strategy)
 7. [Code Style](#code-style)
 8. [Contributing](#contributing)
+9. [Interface Design](#interface-design)
 
 ---
 
@@ -824,6 +825,14 @@ chore: update dependencies
 - Ensure CI passes
 
 ---
+
+## Interface Design
+
+CLI インターフェース、`.shirushi.yml` のスキーマ、ドキュメント/インデックスのデータ契約、そして内部モジュールの責務・フローは `api/interface-design.md` にまとめています。API/MCP など外部統合を検討する際はまずこの文書を参照し、必要な拡張ポイントを共有してください。
+
+## Internal Design
+
+さらに深いコンポーネント責務や `CoreContext` の構造、lint/assign の詳細シーケンス、永続化やエラー伝播の流れは `api/internal-design.md` に整理しました。モジュール改修や新トランスポート/API を実装する際はこちらを参照してください。
 
 ## Additional Resources
 

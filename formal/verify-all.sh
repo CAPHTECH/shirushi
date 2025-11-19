@@ -1,6 +1,6 @@
 #!/bin/bash
 # Shirushi Formal Verification Runner
-# Runs both Alloy and TLA+ (Apalache) verification
+# Runs both Alloy and TLA+ (TLC) verification
 
 set -e  # Exit on error
 set -o pipefail  # Catch errors in pipes
@@ -12,15 +12,13 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(pwd)"
 OUTPUT_DIR="${SCRIPT_DIR}/output"
 ALLOY_FILE="${SCRIPT_DIR}/shirushi.als"
 TLA_FILE="${SCRIPT_DIR}/shirushi.tla"
-APALACHE_CFG="${SCRIPT_DIR}/apalache.cfg"
 
 # Tool paths (can be overridden by environment)
-APALACHE_CMD="${APALACHE_CMD:-apalache-mc}"
-ALLOY_CLI_JAR="${ALLOY_CLI_JAR:-$HOME/.alloy-cli/AlloyCommandline.jar}"
+ALLOY_JAR="${ALLOY_JAR:-$HOME/.alloy/org.alloytools.alloy.dist.jar}"
 
 # Create output directory
 mkdir -p "${OUTPUT_DIR}"
@@ -44,60 +42,54 @@ print_status() {
 }
 
 # =========================================
-# Part 1: TLA+ Type Checking
+# Part 1: TLA+ Model Checking with TLC
 # =========================================
-echo -e "${YELLOW}[1/4]${NC} TLA+ Type Checking with Apalache..."
-if command -v "${APALACHE_CMD}" >/dev/null 2>&1; then
-    if "${APALACHE_CMD}" typecheck "${TLA_FILE}" 2>&1 | tee "${OUTPUT_DIR}/apalache-typecheck.log"; then
-        print_status 0 "TLA+ type checking passed"
+echo -e "${YELLOW}[1/2]${NC} TLA+ Model Checking with TLC..."
+
+# Check if TLA_JAR is set, otherwise try to find it
+if [ -z "${TLA_JAR}" ]; then
+    if [ -f "/opt/tla/tla2tools.jar" ]; then
+        TLA_JAR="/opt/tla/tla2tools.jar"
+    elif [ -f "tla2tools.jar" ]; then
+        TLA_JAR="./tla2tools.jar"
+    fi
+fi
+
+if [ -n "${TLA_JAR}" ] && [ -f "${TLA_JAR}" ]; then
+    echo "Using TLC from: ${TLA_JAR}"
+    
+    # Run TLC
+    if java -jar "${TLA_JAR}" -config shirushi.cfg shirushi.tla 2>&1 | tee "${OUTPUT_DIR}/tlc-check.log"; then
+        # Check log for success message (TLC exit code isn't always 0 on success/failure in the way we want)
+        if grep -q "Model checking completed. No error has been found." "${OUTPUT_DIR}/tlc-check.log"; then
+            print_status 0 "TLA+ model checking passed"
+        else
+            print_status 1 "TLA+ model checking failed (see log)"
+        fi
     else
-        print_status 1 "TLA+ type checking failed"
+        print_status 1 "TLA+ model checking failed to run"
     fi
 else
-    echo -e "${RED}WARNING:${NC} Apalache not found. Skipping TLA+ verification."
-    echo "Install from: https://github.com/informalsystems/apalache/releases"
+    echo -e "${RED}WARNING:${NC} tla2tools.jar not found. Skipping TLA+ verification."
+    echo "Set TLA_JAR environment variable or place tla2tools.jar in the current directory."
 fi
 echo ""
-
-# =========================================
-# Part 2: TLA+ Model Checking
-# =========================================
-echo -e "${YELLOW}[2/4]${NC} TLA+ Model Checking with Apalache..."
-if command -v "${APALACHE_CMD}" >/dev/null 2>&1; then
-    if "${APALACHE_CMD}" check \
-        --config="${APALACHE_CFG}" \
-        --write-json \
-        --out-dir="${OUTPUT_DIR}/apalache" \
-        "${TLA_FILE}" 2>&1 | tee "${OUTPUT_DIR}/apalache-check.log"; then
-        print_status 0 "TLA+ model checking passed"
-    else
-        print_status 1 "TLA+ model checking failed"
-
-        # Check for counterexample
-        if [ -f "${OUTPUT_DIR}/apalache/counterexample.tla" ]; then
-            echo -e "${YELLOW}Counterexample found:${NC}"
-            head -n 20 "${OUTPUT_DIR}/apalache/counterexample.tla"
-            echo "... (see full file at ${OUTPUT_DIR}/apalache/counterexample.tla)"
-        fi
-    fi
-else
-    echo -e "${YELLOW}SKIPPED:${NC} Apalache not installed"
-fi
 echo ""
 
 # =========================================
 # Part 3: Alloy Checking
 # =========================================
-echo -e "${YELLOW}[3/4]${NC} Alloy Specification Checking..."
-if [ -f "${ALLOY_CLI_JAR}" ]; then
-    if java -jar "${ALLOY_CLI_JAR}" "${ALLOY_FILE}" 2>&1 | tee "${OUTPUT_DIR}/alloy-check.log"; then
+echo -e "${YELLOW}[2/2]${NC} Alloy Specification Checking..."
+if [ -f "${ALLOY_JAR}" ]; then
+    # Run all commands (exec --command 0) and output to stdout (--output -)
+    if java -jar "${ALLOY_JAR}" exec --command 0 --output - "${ALLOY_FILE}" 2>&1 | tee "${OUTPUT_DIR}/alloy-check.log"; then
         print_status 0 "Alloy checking passed"
     else
         print_status 1 "Alloy checking failed"
     fi
 elif command -v java >/dev/null 2>&1; then
-    echo -e "${RED}WARNING:${NC} AlloyCommandline.jar not found at ${ALLOY_CLI_JAR}"
-    echo "Download from: https://github.com/draftcode/AlloyCommandline"
+    echo -e "${RED}WARNING:${NC} Alloy JAR not found at ${ALLOY_JAR}"
+    echo "Download from: https://github.com/AlloyTools/org.alloytools.alloy/releases"
     echo -e "${YELLOW}SKIPPED:${NC} Alloy verification"
 else
     echo -e "${RED}ERROR:${NC} Java not found. Cannot run Alloy."
@@ -123,8 +115,8 @@ else
     echo "Check logs in: ${OUTPUT_DIR}"
     echo ""
     echo "Common issues:"
-    echo "  - Apalache not installed: brew install apalache"
-    echo "  - AlloyCommandline not found: download from GitHub"
+    echo "  - TLC JAR not found: set TLA_JAR or place tla2tools.jar in current directory"
+    echo "  - Alloy JAR not found: download from https://github.com/AlloyTools/org.alloytools.alloy/releases"
     echo "  - Java not found: install OpenJDK 17+"
     exit 1
 fi
