@@ -4,10 +4,11 @@ import yaml, { JSON_SCHEMA } from 'js-yaml';
 
 import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
 import { ShirushiErrors } from '../errors/definitions.js';
+import { assertYamlSafety, UnsafeYamlError } from './yaml-safety.js';
+import { countDocIdDirectives } from './doc-id.js';
 
 type ErrorDefinition = (typeof ShirushiErrors)[keyof typeof ShirushiErrors];
 
-const DOC_ID_REGEX = /^doc_id\s*:/gm;
 const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
 
 export async function parseYamlFile(path: string): Promise<DocumentParseResult> {
@@ -20,12 +21,13 @@ export function parseYamlContent(path: string, content: string): DocumentParseRe
   let docId: string | undefined;
   let metadata: Record<string, unknown> = {};
 
-  const docIdOccurrences = content.match(DOC_ID_REGEX);
-  if (docIdOccurrences && docIdOccurrences.length > 1) {
+  const docIdOccurrences = countDocIdDirectives(content);
+  if (docIdOccurrences > 1) {
     pushProblem(problems, ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT, { path });
   }
 
   try {
+    assertYamlSafety(content, path);
     const parsed = yaml.load(content, YAML_OPTIONS);
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       const { doc_id: candidate, ...rest } = parsed as Record<string, unknown>;
@@ -48,8 +50,17 @@ export function parseYamlContent(path: string, content: string): DocumentParseRe
         'YAML root must be an object'
       );
     }
-  } catch {
-    pushProblem(problems, ShirushiErrors.INVALID_YAML, { path });
+  } catch (error) {
+    if (error instanceof UnsafeYamlError) {
+      pushProblem(
+        problems,
+        ShirushiErrors.INVALID_YAML,
+        { path, reason: error.message },
+        error.message
+      );
+    } else {
+      pushProblem(problems, ShirushiErrors.INVALID_YAML, { path });
+    }
   }
 
   return {

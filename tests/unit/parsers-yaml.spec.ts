@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseYamlFile, parseYamlContent } from '@/parsers/yaml.js';
+import { MAX_YAML_ALIAS_BUDGET } from '@/parsers/yaml-safety.js';
 
 const fixture = (name: string) =>
   path.resolve('tests/fixtures/doc-discovery/basic/docs', name);
@@ -31,6 +32,17 @@ describe('parsers/yaml', () => {
 
   it('reports invalid YAML when root is not an object', async () => {
     const result = await parseYamlFile(fixture('yaml-scalar.yaml'));
+    expect(result.problems.some((p) => p.code === 'INVALID_YAML')).toBe(true);
+  });
+
+  it('rejects YAML documents with excessive aliases', () => {
+    const aliasBudget = MAX_YAML_ALIAS_BUDGET + 5;
+    const anchors = Array.from({ length: aliasBudget }, (_, index) => `&id${index} value${index}: ${index}`).join('\n');
+    const doc = [anchors, 'doc_id: *id1'].join('\n');
+
+    const result = parseYamlContent('alias.yaml', doc);
+
+    expect(result.docId).toBeUndefined();
     expect(result.problems.some((p) => p.code === 'INVALID_YAML')).toBe(true);
   });
 });
