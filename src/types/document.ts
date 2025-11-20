@@ -1,12 +1,9 @@
+import type { ShirushiErrorCode } from '../errors/definitions.js';
+
 export type DocumentKind = 'markdown' | 'yaml';
 
-export type DocumentProblemCode =
-  | 'MISSING_ID'
-  | 'MULTIPLE_IDS_IN_DOCUMENT'
-  | 'INVALID_FRONT_MATTER'
-  | 'INVALID_YAML'
-  | 'UNSUPPORTED_DOCUMENT'
-  | 'INVALID_DOC_ID_TYPE';
+// Use centralized error codes
+export type DocumentProblemCode = ShirushiErrorCode;
 
 export interface DocumentProblem {
   code: DocumentProblemCode;
@@ -28,7 +25,7 @@ export interface DocumentMetadata {
 export interface DocumentParseResult {
   kind: DocumentKind;
   path: string;
-  docId?: string;
+  docId?: string | undefined;
   metadata: DocumentMetadata;
   problems: DocumentProblem[];
 }

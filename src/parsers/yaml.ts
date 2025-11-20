@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import yaml from 'js-yaml';
 
 import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
+import { ShirushiErrors } from '../errors/definitions.js';
 
 const DOC_ID_REGEX = /^doc_id\s*:/gm;
 
@@ -19,8 +20,8 @@ export function parseYamlContent(path: string, content: string): DocumentParseRe
   const docIdOccurrences = content.match(DOC_ID_REGEX);
   if (docIdOccurrences && docIdOccurrences.length > 1) {
     problems.push({
-      code: 'MULTIPLE_IDS_IN_DOCUMENT',
-      message: 'doc_id appears multiple times in YAML document',
+      code: ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT.code,
+      message: ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT.message,
     });
   }
 
@@ -32,15 +33,27 @@ export function parseYamlContent(path: string, content: string): DocumentParseRe
       if (typeof candidate === 'string') {
         docId = candidate;
       } else if (candidate === undefined) {
-        problems.push({ code: 'MISSING_ID', message: 'doc_id is missing at YAML root' });
+        problems.push({
+          code: ShirushiErrors.MISSING_ID.code,
+          message: ShirushiErrors.MISSING_ID.message,
+        });
       } else {
-        problems.push({ code: 'INVALID_DOC_ID_TYPE', message: 'doc_id must be a string' });
+        problems.push({
+          code: ShirushiErrors.INVALID_DOC_ID_TYPE.code,
+          message: ShirushiErrors.INVALID_DOC_ID_TYPE.message,
+        });
       }
     } else {
-      problems.push({ code: 'INVALID_YAML', message: 'YAML root must be an object' });
+      problems.push({
+        code: ShirushiErrors.INVALID_YAML.code,
+        message: 'YAML root must be an object',
+      });
     }
-  } catch (error) {
-    problems.push({ code: 'INVALID_YAML', message: 'Failed to parse YAML document' });
+  } catch {
+    problems.push({
+      code: ShirushiErrors.INVALID_YAML.code,
+      message: ShirushiErrors.INVALID_YAML.message,
+    });
   }
 
   return {

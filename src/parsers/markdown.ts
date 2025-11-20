@@ -1,8 +1,9 @@
 import { readFile } from 'node:fs/promises';
 
-import matter, { type GrayMatterFile } from 'gray-matter';
+import matter from 'gray-matter';
 
 import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
+import { ShirushiErrors } from '../errors/definitions.js';
 
 const DOC_ID_PATTERN = /^doc_id\s*:/gm;
 
@@ -44,24 +45,36 @@ export function parseMarkdownContent(path: string, content: string): DocumentPar
   const frontMatterBlock = extractFrontMatterBlock(content);
   const occurrences = countDocIdOccurrences(frontMatterBlock);
   if (occurrences === 0) {
-    problems.push({ code: 'MISSING_ID', message: 'doc_id is missing from front matter' });
+    problems.push({
+      code: ShirushiErrors.MISSING_ID.code,
+      message: ShirushiErrors.MISSING_ID.message,
+    });
   } else if (occurrences > 1) {
-    problems.push({ code: 'MULTIPLE_IDS_IN_DOCUMENT', message: 'doc_id appears multiple times in front matter' });
+    problems.push({
+      code: ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT.code,
+      message: ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT.message,
+    });
   }
 
   try {
-    const parsed = matter(content) as GrayMatterFile<Record<string, unknown>>;
+    const parsed = matter(content);
     const data = (parsed.data ?? {}) as Record<string, unknown>;
     metadata = normalizeMetadata(data);
 
-    const value = data.doc_id;
+    const value = data['doc_id'];
     if (typeof value === 'string') {
       docId = value;
     } else if (value !== undefined) {
-      problems.push({ code: 'INVALID_DOC_ID_TYPE', message: 'doc_id must be a string' });
+      problems.push({
+        code: ShirushiErrors.INVALID_DOC_ID_TYPE.code,
+        message: ShirushiErrors.INVALID_DOC_ID_TYPE.message,
+      });
     }
-  } catch (error) {
-    problems.push({ code: 'INVALID_FRONT_MATTER', message: 'Failed to parse YAML front matter' });
+  } catch {
+    problems.push({
+      code: ShirushiErrors.INVALID_FRONT_MATTER.code,
+      message: ShirushiErrors.INVALID_FRONT_MATTER.message,
+    });
   }
 
   return {
