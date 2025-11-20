@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
 import matter from 'gray-matter';
+import yaml, { JSON_SCHEMA } from 'js-yaml';
 
 import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
 import { ShirushiErrors } from '../errors/definitions.js';
@@ -8,16 +9,28 @@ import { ShirushiErrors } from '../errors/definitions.js';
 type ErrorDefinition = (typeof ShirushiErrors)[keyof typeof ShirushiErrors];
 
 const DOC_ID_PATTERN = /^doc_id\s*:/gm;
+const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
 
 function extractFrontMatterBlock(content: string): string | null {
   const lines = content.split(/\r?\n/);
-  if (lines[0]?.trim() !== '---') {
+  let start = 0;
+
+  while (start < lines.length && lines[start]?.trim() === '') {
+    start += 1;
+  }
+
+  if (start >= lines.length) {
     return null;
   }
 
-  for (let i = 1; i < lines.length; i += 1) {
+  const firstLine = lines[start]?.replace(/^\uFEFF/, '').trim();
+  if (firstLine !== '---') {
+    return null;
+  }
+
+  for (let i = start + 1; i < lines.length; i += 1) {
     if (lines[i]?.trim() === '---') {
-      return lines.slice(1, i).join('\n');
+      return lines.slice(start + 1, i).join('\n');
     }
   }
   return null;
@@ -40,11 +53,12 @@ export async function parseMarkdownFile(path: string): Promise<DocumentParseResu
 }
 
 export function parseMarkdownContent(path: string, content: string): DocumentParseResult {
+  const sanitizedContent = stripBomAndLeadingBlankLines(content);
   const problems: DocumentProblem[] = [];
   let docId: string | undefined;
   let metadata: Record<string, unknown> = {};
 
-  const frontMatterBlock = extractFrontMatterBlock(content);
+  const frontMatterBlock = extractFrontMatterBlock(sanitizedContent);
   const occurrences = countDocIdOccurrences(frontMatterBlock);
   if (occurrences === 0) {
     pushProblem(problems, ShirushiErrors.MISSING_ID, { path });
@@ -53,7 +67,11 @@ export function parseMarkdownContent(path: string, content: string): DocumentPar
   }
 
   try {
-    const parsed = matter(content);
+    const parsed = matter(sanitizedContent, {
+      engines: {
+        yaml: (str: string) => yaml.load(str, YAML_OPTIONS) ?? {},
+      },
+    });
     const data = (parsed.data ?? {}) as Record<string, unknown>;
     metadata = normalizeMetadata(data);
 
@@ -89,4 +107,10 @@ function pushProblem(
     severity: definition.severity,
     ...(details ? { details } : {}),
   });
+}
+
+function stripBomAndLeadingBlankLines(value: string): string {
+  let result = value.replace(/^\uFEFF/, '');
+  result = result.replace(/^(?:\s*\r?\n)+/, '');
+  return result;
 }

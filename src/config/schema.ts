@@ -65,8 +65,37 @@ export const ConfigSchema = z
     forbid_id_change: z.boolean().default(true),
     allow_missing_id_in_new_files: z.boolean().default(false),
   })
-  .superRefine((config, ctx) => {
+.superRefine((config, ctx) => {
     const placeholders = extractTemplatePlaceholders(config.id_format);
+    const rawSegments = extractRawPlaceholderSegments(config.id_format);
+    const invalidNames = rawSegments.filter((name) => !PLACEHOLDER_NAME_PATTERN.test(name));
+
+    if (invalidNames.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['id_format'],
+        message: `id_format contains invalid placeholder names: ${invalidNames.join(', ')}`,
+      });
+    }
+
+    if (placeholders.length === 0 && invalidNames.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['id_format'],
+        message: 'id_format must contain at least one placeholder {PLACEHOLDER}',
+      });
+    }
+
+    const openBraces = (config.id_format.match(/\{/g) || []).length;
+    const closeBraces = (config.id_format.match(/\}/g) || []).length;
+    if (openBraces !== closeBraces) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['id_format'],
+        message: 'id_format has unbalanced braces',
+      });
+    }
+
     const dimensionNames = new Set(Object.keys(config.dimensions));
 
     const undefinedPlaceholders = placeholders.filter((name) => !dimensionNames.has(name));
@@ -93,6 +122,8 @@ export type ShirushiConfig = z.infer<typeof ConfigSchema>;
 export type DimensionDefinition = ShirushiConfig['dimensions'][string];
 
 const PLACEHOLDER_REGEX = /\{([A-Za-z0-9_]+)\}/g;
+const RAW_PLACEHOLDER_REGEX = /\{([^}]*)\}/g;
+const PLACEHOLDER_NAME_PATTERN = /^[A-Za-z0-9_]+$/;
 
 export function extractTemplatePlaceholders(template: string): string[] {
   PLACEHOLDER_REGEX.lastIndex = 0;
@@ -101,10 +132,20 @@ export function extractTemplatePlaceholders(template: string): string[] {
   let result: RegExpExecArray | null;
   while ((result = PLACEHOLDER_REGEX.exec(template)) !== null) {
     const name = result[1];
-    if (!seen.has(name)) {
+    if (name !== undefined && !seen.has(name)) {
       seen.add(name);
       matches.push(name);
     }
+  }
+  return matches;
+}
+
+function extractRawPlaceholderSegments(template: string): string[] {
+  RAW_PLACEHOLDER_REGEX.lastIndex = 0;
+  const matches: string[] = [];
+  let result: RegExpExecArray | null;
+  while ((result = RAW_PLACEHOLDER_REGEX.exec(template)) !== null) {
+    matches.push(result[1] ?? '');
   }
   return matches;
 }

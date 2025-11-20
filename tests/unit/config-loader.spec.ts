@@ -52,4 +52,22 @@ describe('config/loader', () => {
       loadConfig({ cwd: path.join(configFixturesRoot, 'reserved-doc-type') })
     ).rejects.toThrowError(/dimension name doc_type is reserved/);
   });
+
+  it('rejects invalid placeholder names in id_format', async () => {
+    await expect(
+      loadConfig({ cwd: path.join(configFixturesRoot, 'invalid-placeholder') })
+    ).rejects.toThrowError(/invalid placeholder names/);
+  });
+
+  it('rejects id_format without placeholders', async () => {
+    await expect(
+      loadConfig({ cwd: path.join(configFixturesRoot, 'no-placeholder') })
+    ).rejects.toThrowError(/must contain at least one placeholder/);
+  });
+
+  it('rejects id_format with unbalanced braces', async () => {
+    await expect(
+      loadConfig({ cwd: path.join(configFixturesRoot, 'unbalanced-braces') })
+    ).rejects.toThrowError(/unbalanced braces/);
+  });
 });

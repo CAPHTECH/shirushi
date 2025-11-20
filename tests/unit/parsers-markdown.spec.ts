@@ -40,4 +40,38 @@ describe('parsers/markdown', () => {
 
     expect(result.problems.some((p) => p.code === 'INVALID_FRONT_MATTER')).toBe(true);
   });
+
+  it('detects front matter after BOM and blank lines', () => {
+    const doc = [
+      '\uFEFF',
+      '',
+      '---',
+      'doc_id: TEST-123',
+      'title: BOM Spec',
+      '---',
+      '',
+      '# Title',
+    ].join('\n');
+
+    const result = parseMarkdownContent('bom.md', doc);
+
+    expect(result.docId).toBe('TEST-123');
+    expect(result.problems).toHaveLength(0);
+  });
+
+  it('rejects yaml execution tags inside front matter', () => {
+    const doc = [
+      '---',
+      'doc_id: !!js/function >',
+      '  function () { return "pwn"; }',
+      '---',
+      '',
+      '# Malicious',
+    ].join('\n');
+
+    const result = parseMarkdownContent('evil.md', doc);
+
+    expect(result.docId).toBeUndefined();
+    expect(result.problems.some((p) => p.code === 'INVALID_FRONT_MATTER')).toBe(true);
+  });
 });

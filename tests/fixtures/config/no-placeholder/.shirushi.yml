@@ -1,0 +1,7 @@
+id_format: "FIXED-ID"
+doc_globs:
+  - docs/**/*.md
+dimensions:
+  COMP:
+    type: enum
+    values: ["SHI"]
