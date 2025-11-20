@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import yaml from 'js-yaml';
+import yaml, { JSON_SCHEMA } from 'js-yaml';
 import { ZodError } from 'zod';
 
 import { ConfigSchema } from './schema.js';
@@ -24,11 +24,12 @@ export class ConfigLoaderError extends Error {
     super(message);
     this.name = 'ConfigLoaderError';
     if (options?.cause) {
-      // @ts-expect-error cause is available in recent Node versions
       this.cause = options.cause;
     }
   }
 }
+
+const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
 
 export async function loadConfig(options: LoadConfigOptions = {}): Promise<LoadedConfig> {
   const cwd = options.cwd ?? process.cwd();
@@ -44,7 +45,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<Loade
 
   let raw: unknown;
   try {
-    raw = yaml.load(fileContents);
+    raw = yaml.load(fileContents, YAML_OPTIONS);
   } catch (error) {
     throw new ConfigLoaderError(`Config file at ${resolvedPath} is not valid YAML`, { cause: error });
   }

@@ -5,6 +5,8 @@ import matter from 'gray-matter';
 import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
 import { ShirushiErrors } from '../errors/definitions.js';
 
+type ErrorDefinition = (typeof ShirushiErrors)[keyof typeof ShirushiErrors];
+
 const DOC_ID_PATTERN = /^doc_id\s*:/gm;
 
 function extractFrontMatterBlock(content: string): string | null {
@@ -45,15 +47,9 @@ export function parseMarkdownContent(path: string, content: string): DocumentPar
   const frontMatterBlock = extractFrontMatterBlock(content);
   const occurrences = countDocIdOccurrences(frontMatterBlock);
   if (occurrences === 0) {
-    problems.push({
-      code: ShirushiErrors.MISSING_ID.code,
-      message: ShirushiErrors.MISSING_ID.message,
-    });
+    pushProblem(problems, ShirushiErrors.MISSING_ID, { path });
   } else if (occurrences > 1) {
-    problems.push({
-      code: ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT.code,
-      message: ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT.message,
-    });
+    pushProblem(problems, ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT, { path });
   }
 
   try {
@@ -65,16 +61,10 @@ export function parseMarkdownContent(path: string, content: string): DocumentPar
     if (typeof value === 'string') {
       docId = value;
     } else if (value !== undefined) {
-      problems.push({
-        code: ShirushiErrors.INVALID_DOC_ID_TYPE.code,
-        message: ShirushiErrors.INVALID_DOC_ID_TYPE.message,
-      });
+      pushProblem(problems, ShirushiErrors.INVALID_DOC_ID_TYPE, { path });
     }
   } catch {
-    problems.push({
-      code: ShirushiErrors.INVALID_FRONT_MATTER.code,
-      message: ShirushiErrors.INVALID_FRONT_MATTER.message,
-    });
+    pushProblem(problems, ShirushiErrors.INVALID_FRONT_MATTER, { path });
   }
 
   return {
@@ -84,4 +74,19 @@ export function parseMarkdownContent(path: string, content: string): DocumentPar
     metadata,
     problems,
   };
+}
+
+function pushProblem(
+  collection: DocumentProblem[],
+  definition: ErrorDefinition,
+  details?: Record<string, unknown>,
+  messageOverride?: string
+): void {
+  collection.push({
+    code: definition.code,
+    message: messageOverride ?? definition.message,
+    domain: definition.domain,
+    severity: definition.severity,
+    ...(details ? { details } : {}),
+  });
 }

@@ -33,31 +33,46 @@ class LawLogger {
   }
 
   private emit(event: TelemetryEvent) {
-    if (this.isJsonMode) {
-      console.log(JSON.stringify(event));
-    } else {
-      const time = new Date(event.timestamp).toLocaleTimeString();
-      const level = event.level.toUpperCase().padEnd(5);
-      
-      // 人間可読形式
-      let output = `[${time}] ${level} [${event.event}] ${event.message}`;
-      if (event.context && Object.keys(event.context).length > 0) {
-         // コンテキストがある場合は整形して表示
-         const contextStr = Object.entries(event.context)
-           .map(([k, v]) => {
-             const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v);
-             return `${k}=${valStr}`;
-           })
-           .join(' ');
-         output += ` { ${contextStr} }`;
-      }
-      
-      if (event.level === ErrorSeverity.Error) {
-        console.error(output);
-      } else {
-        console.log(output);
-      }
+    const payload = this.formatEvent(event);
+
+    if (event.level === ErrorSeverity.Error) {
+      console.error(payload);
+      return;
     }
+
+    if (event.level === ErrorSeverity.Warning) {
+      console.warn(payload);
+      return;
+    }
+
+    if (event.level === 'debug') {
+      console.debug(payload);
+      return;
+    }
+
+    console.log(payload);
+  }
+
+  private formatEvent(event: TelemetryEvent): string {
+    if (this.isJsonMode) {
+      return JSON.stringify(event);
+    }
+
+    const time = new Date(event.timestamp).toLocaleTimeString();
+    const level = event.level.toUpperCase().padEnd(5);
+
+    let output = `[${time}] ${level} [${event.event}] ${event.message}`;
+    if (event.context && Object.keys(event.context).length > 0) {
+      const contextStr = Object.entries(event.context)
+        .map(([k, v]) => {
+          const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v);
+          return `${k}=${valStr}`;
+        })
+        .join(' ');
+      output += ` { ${contextStr} }`;
+    }
+
+    return output;
   }
 
   public log(

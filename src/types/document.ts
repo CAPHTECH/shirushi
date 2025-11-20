@@ -1,4 +1,8 @@
-import type { ShirushiErrorCode } from '../errors/definitions.js';
+import type {
+  ErrorSeverity,
+  LawDomain,
+  ShirushiErrorCode,
+} from '../errors/definitions.js';
 
 export type DocumentKind = 'markdown' | 'yaml';
 
@@ -8,6 +12,8 @@ export type DocumentProblemCode = ShirushiErrorCode;
 export interface DocumentProblem {
   code: DocumentProblemCode;
   message: string;
+  domain: LawDomain;
+  severity: ErrorSeverity;
   details?: Record<string, unknown>;
 }
 
