@@ -1,0 +1,11 @@
+id_format: "{doc_type}-{COMP}"
+doc_globs:
+  - docs/**/*.md
+dimensions:
+  doc_type:
+    type: enum_from_doc_type
+    mapping:
+      spec: SPEC
+  COMP:
+    type: enum
+    values: ["SHI"]

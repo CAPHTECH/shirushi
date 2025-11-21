@@ -1,0 +1,4 @@
+documents:
+  - doc_id: SHI-SPEC-2025-0001-A
+    path: docs/spec-good.md
+    title: Good Spec
