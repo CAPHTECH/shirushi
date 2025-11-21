@@ -1,5 +1,7 @@
 import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
+
 import { loadConfig, ConfigLoaderError } from '@/config/loader.js';
 
 const docFixturesRoot = path.resolve('tests/fixtures/doc-discovery');

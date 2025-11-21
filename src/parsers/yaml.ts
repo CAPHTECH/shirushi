@@ -2,10 +2,12 @@ import { readFile } from 'node:fs/promises';
 
 import yaml, { JSON_SCHEMA } from 'js-yaml';
 
-import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
 import { ShirushiErrors } from '../errors/definitions.js';
-import { assertYamlSafety, UnsafeYamlError } from './yaml-safety.js';
+
 import { countDocIdDirectives } from './doc-id.js';
+import { assertYamlSafety, UnsafeYamlError } from './yaml-safety.js';
+
+import type { DocumentParseResult, DocumentProblem } from '../types/document.js';
 
 type ErrorDefinition = (typeof ShirushiErrors)[keyof typeof ShirushiErrors];
 

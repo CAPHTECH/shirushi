@@ -1,6 +1,8 @@
 import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
-import { parseMarkdownFile, parseMarkdownContent } from '@/parsers/markdown.js';
+
+import { parseMarkdownContent, parseMarkdownFile } from '@/parsers/markdown.js';
 import { MAX_YAML_ALIAS_BUDGET } from '@/parsers/yaml-safety.js';
 
 const fixture = (name: string) =>

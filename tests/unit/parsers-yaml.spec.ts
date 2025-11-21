@@ -1,7 +1,9 @@
 import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
-import { parseYamlFile, parseYamlContent } from '@/parsers/yaml.js';
+
 import { MAX_YAML_ALIAS_BUDGET } from '@/parsers/yaml-safety.js';
+import { parseYamlContent, parseYamlFile } from '@/parsers/yaml.js';
 
 const fixture = (name: string) =>
   path.resolve('tests/fixtures/doc-discovery/basic/docs', name);

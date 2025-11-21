@@ -1,4 +1,5 @@
 import { pathToFileURL } from 'node:url';
+
 import { logger } from '../utils/logger.js';
 
 export function run(): void {
