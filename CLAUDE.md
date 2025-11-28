@@ -8,6 +8,8 @@ Shirushi (標 - "mark" in Japanese) is a document ID management and validation s
 
 **Current Status**: v0.1.0 - Documentation phase complete, implementation not yet started.
 
+GitHub: CAPHTECH/shirushi
+
 ## Development Commands
 
 ### Build & Development
