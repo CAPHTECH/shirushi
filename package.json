@@ -61,6 +61,7 @@
     "commander": "^11.1.0",
     "debug": "^4.3.4",
     "fast-glob": "^3.3.2",
+    "fp-ts": "^2.16.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
     "simple-git": "^3.22.0",

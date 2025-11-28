@@ -17,6 +17,9 @@ dependencies:
   fast-glob:
     specifier: ^3.3.2
     version: 3.3.3
+  fp-ts:
+    specifier: ^2.16.0
+    version: 2.16.11
   gray-matter:
     specifier: ^4.0.3
     version: 4.0.3
@@ -3066,6 +3069,10 @@ packages:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
     dev: true
+
+  /fp-ts@2.16.11:
+    resolution: {integrity: sha512-LaI+KaX2NFkfn1ZGHoKCmcfv7yrZsC3b8NtWsTVQeHkq4F27vI5igUuO53sxqDEa2gNQMHFPmpojDw/1zmUK7w==}
+    dev: false
 
   /fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}

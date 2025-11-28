@@ -25,7 +25,7 @@ class LawLogger {
   constructor() {
     // 環境変数などでJSONモードを切り替える想定
     // デフォルトはfalseで人間可読形式
-    this.isJsonMode = process.env.LOG_FORMAT === 'json';
+    this.isJsonMode = process.env['LOG_FORMAT'] === 'json';
   }
 
   public setJsonMode(enable: boolean) {
@@ -81,13 +81,14 @@ class LawLogger {
     message: string,
     context?: LogContext
   ) {
-    this.emit({
+    const baseEvent = {
       event: eventName,
       level,
       message,
-      context,
       timestamp: new Date().toISOString(),
-    });
+    };
+    // context が undefined の場合はプロパティを含めない（exactOptionalPropertyTypes対応）
+    this.emit(context !== undefined ? { ...baseEvent, context } : baseEvent);
   }
 
   // Helper methods for specific levels
