@@ -1,0 +1,11 @@
+id_format: "{COMP-ID}-{YEAR4}"
+doc_globs:
+  - docs/**/*.md
+dimensions:
+  COMP:
+    type: enum
+    values: ["SHI"]
+  YEAR4:
+    type: year
+    digits: 4
+    source: created_at

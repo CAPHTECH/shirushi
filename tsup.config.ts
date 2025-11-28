@@ -22,8 +22,8 @@ export default defineConfig({
   // ソースマップを生成（デバッグ用）
   sourcemap: true,
 
-  // 出力ディレクトリ
-  outDir: 'dist',
+  // 出力ディレクトリ（CLIは dist/cli/ に配置）
+  outDir: 'dist/cli',
 
   // ターゲット環境: Node.js 18以上
   target: 'node18',

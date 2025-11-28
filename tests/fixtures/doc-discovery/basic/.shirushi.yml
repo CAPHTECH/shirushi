@@ -1,0 +1,26 @@
+id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}"
+doc_globs:
+  - "docs/**/*.md"
+  - "docs/**/*.yaml"
+dimensions:
+  COMP:
+    type: enum
+    values: ["SHI"]
+  KIND:
+    type: enum
+    values: ["SPEC"]
+  YEAR4:
+    type: year
+    digits: 4
+    source: created_at
+  SER4:
+    type: serial
+    digits: 4
+    scope: ["COMP", "KIND", "YEAR4"]
+  CHK1:
+    type: checksum
+    algo: mod26AZ
+    of: ["COMP", "KIND", "YEAR4", "SER4"]
+index_file: docs/doc_index.yaml
+forbid_id_change: true
+allow_missing_id_in_new_files: false
