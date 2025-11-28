@@ -26,7 +26,6 @@
     "outDir": "./dist",
     "removeComments": false,
     "importHelpers": true,
-    "importsNotUsedAsValues": "error",
     "downlevelIteration": true,
     "newLine": "lf",
 
