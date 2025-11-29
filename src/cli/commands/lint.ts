@@ -40,6 +40,8 @@ export interface LintOptions {
   config?: string;
   format?: OutputFormat;
   quiet?: boolean;
+  /** ベースディレクトリ（テスト用、デフォルト: process.cwd()） */
+  cwd?: string;
 }
 
 /**
@@ -117,7 +119,7 @@ async function validateIndex(
  * lintコマンドを実行
  */
 export async function executeLint(options: LintOptions): Promise<number> {
-  const cwd = process.cwd();
+  const cwd = options.cwd ?? process.cwd();
   const format = options.format ?? 'table';
 
   logger.debug('lint.start', 'Starting lint command', { options });

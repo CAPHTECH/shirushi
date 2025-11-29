@@ -24,6 +24,8 @@ import type { Command } from 'commander';
 export interface ScanOptions {
   config?: string;
   format?: OutputFormat;
+  /** ベースディレクトリ（テスト用、デフォルト: process.cwd()） */
+  cwd?: string;
 }
 
 /**
@@ -38,7 +40,7 @@ interface ScanCliOptions {
  * scanコマンドを実行
  */
 export async function executeScan(options: ScanOptions): Promise<number> {
-  const cwd = process.cwd();
+  const cwd = options.cwd ?? process.cwd();
   const format = options.format ?? 'table';
 
   logger.debug('scan.start', 'Starting scan command', { options });
