@@ -40,6 +40,12 @@ export default defineConfig({
     'zod',
   ],
 
+  // fp-ts, minimatchはESMインポート問題があるためバンドルに含める
+  noExternal: [
+    'fp-ts',
+    'minimatch',
+  ],
+
   // バナー: CLIを実行可能にする
   banner: {
     js: '#!/usr/bin/env node',
