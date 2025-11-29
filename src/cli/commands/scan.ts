@@ -7,11 +7,11 @@
  * - --format <table|json|yaml>: 出力フォーマット
  */
 
+import { loadConfigForCommand } from '@/cli/helpers/config';
 import {
   toScanOutput,
   formatScanResult,
 } from '@/cli/output/formatters';
-import { loadConfig } from '@/config/loader';
 import { scanDocuments } from '@/core/scanner';
 import { logger } from '@/utils/logger';
 
@@ -44,20 +44,11 @@ export async function executeScan(options: ScanOptions): Promise<number> {
   logger.debug('scan.start', 'Starting scan command', { options });
 
   // 1. 設定を読み込み
-  let config;
-  try {
-    const loaded = await loadConfig({
-      cwd,
-      ...(options.config ? { configPath: options.config } : {}),
-    });
-    config = loaded.config;
-    logger.debug('scan.config', 'Config loaded', { path: loaded.path });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unknown config error';
-    console.error(`Error loading config: ${message}`);
+  const loaded = await loadConfigForCommand(options.config, cwd, 'scan');
+  if (!loaded) {
     return 1;
   }
+  const { config } = loaded;
 
   // 2. ドキュメントをスキャン
   const scanResult = await scanDocuments(config, { cwd });

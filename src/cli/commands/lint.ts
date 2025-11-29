@@ -11,6 +11,7 @@
  * 注: --base, --changed-only オプションは v0.2 で実装予定
  */
 
+import { loadConfigForCommand } from '@/cli/helpers/config';
 import {
   buildLintResult,
   formatLintResult,
@@ -18,7 +19,6 @@ import {
   validationErrorToLintError,
   formatLintQuiet,
 } from '@/cli/output/reporters';
-import { loadConfig } from '@/config/loader';
 import {
   loadIndexFile,
   validateIndexConsistency,
@@ -49,28 +49,6 @@ interface LintCliOptions {
   config?: string;
   format?: string;
   quiet?: boolean;
-}
-
-/**
- * 設定をロードする
- */
-async function loadLintConfig(
-  configPath: string | undefined,
-  cwd: string
-): Promise<{ config: ShirushiConfig; path: string } | null> {
-  try {
-    const loaded = await loadConfig({
-      cwd,
-      ...(configPath ? { configPath } : {}),
-    });
-    logger.debug('lint.config', 'Config loaded', { path: loaded.path });
-    return loaded;
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Unknown config error';
-    console.error(`Error loading config: ${message}`);
-    return null;
-  }
 }
 
 /**
@@ -145,7 +123,7 @@ export async function executeLint(options: LintOptions): Promise<number> {
   logger.debug('lint.start', 'Starting lint command', { options });
 
   // 1. 設定を読み込み
-  const loaded = await loadLintConfig(options.config, cwd);
+  const loaded = await loadConfigForCommand(options.config, cwd, 'lint');
   if (!loaded) {
     return 1;
   }
