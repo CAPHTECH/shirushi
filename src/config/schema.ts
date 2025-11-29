@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 const GlobSchema = z.string().min(1, 'doc_globs must contain non-empty strings');
 
-const EnumDimensionSchema = z.object({
+// 各dimension schemaをexport（他モジュールからの型推論用）
+export const EnumDimensionSchema = z.object({
   type: z.literal('enum'),
   values: z.array(z.string().min(1)).min(1),
   select: z
@@ -19,7 +20,7 @@ const EnumDimensionSchema = z.object({
     .optional(),
 });
 
-const EnumFromDocTypeDimensionSchema = z.object({
+export const EnumFromDocTypeDimensionSchema = z.object({
   type: z.literal('enum_from_doc_type'),
   mapping: z.record(z.string().min(1)).refine(
     (mapping) => Object.keys(mapping).length > 0,
@@ -27,25 +28,25 @@ const EnumFromDocTypeDimensionSchema = z.object({
   ),
 });
 
-const YearDimensionSchema = z.object({
+export const YearDimensionSchema = z.object({
   type: z.literal('year'),
   digits: z.number().int().min(2).max(4).default(4),
   source: z.string().min(1).default('created_at'),
 });
 
-const SerialDimensionSchema = z.object({
+export const SerialDimensionSchema = z.object({
   type: z.literal('serial'),
   digits: z.number().int().min(1),
   scope: z.array(z.string().min(1)).min(1),
 });
 
-const ChecksumDimensionSchema = z.object({
+export const ChecksumDimensionSchema = z.object({
   type: z.literal('checksum'),
   algo: z.enum(['mod26AZ']),
   of: z.array(z.string().min(1)).min(1),
 });
 
-const DimensionSchema = z.discriminatedUnion('type', [
+export const DimensionSchema = z.discriminatedUnion('type', [
   EnumDimensionSchema,
   EnumFromDocTypeDimensionSchema,
   YearDimensionSchema,
