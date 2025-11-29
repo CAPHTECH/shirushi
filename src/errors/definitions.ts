@@ -202,6 +202,22 @@ export const ShirushiErrors = {
     severity: ErrorSeverity.Error,
     description: 'The same doc_id appears multiple times in the index file.',
   },
+
+  // Serial Generation Domain
+  SERIAL_OVERFLOW: {
+    code: 'SERIAL_OVERFLOW',
+    message: 'Serial number overflow',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'Next serial number exceeds maximum value for digit count.',
+  },
+  MISSING_SCOPE_DIMENSION: {
+    code: 'MISSING_SCOPE_DIMENSION',
+    message: 'Missing scope dimension for serial generation',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'Required scope dimension value is not available in context.',
+  },
 } as const;
 
 export type ShirushiErrorCode = keyof typeof ShirushiErrors;
