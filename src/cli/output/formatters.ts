@@ -7,8 +7,8 @@
 
 import yaml from 'js-yaml';
 
-import type { DocumentParseResult } from '@/types/document';
 import type { ScanSummary } from '@/core/scanner';
+import type { DocumentParseResult } from '@/types/document';
 
 /**
  * 出力フォーマット
@@ -158,7 +158,7 @@ function formatRow(values: string[], widths: number[]): string {
  */
 function truncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen - 3) + '...';
+  return `${str.slice(0, maxLen - 3)  }...`;
 }
 
 /**

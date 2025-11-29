@@ -5,11 +5,13 @@
  * 実際のファイルシステムとCLI実行をテストする。
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import path from 'node:path';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
-import { scanDocuments } from '@/core/scanner';
+import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { loadConfig } from '@/config/loader';
+import { scanDocuments } from '@/core/scanner';
 
 // テスト用一時ディレクトリ
 const TEST_DIR = path.join(process.cwd(), 'tests/.tmp/scan');

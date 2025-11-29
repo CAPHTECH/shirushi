@@ -5,17 +5,19 @@
  * バリデーションロジックをテストする。
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import path from 'node:path';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
-import { scanDocuments } from '@/core/scanner';
-import { validateDocId } from '@/core/validator';
+import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
+import { problemToLintError, validationErrorToLintError } from '@/cli/output/reporters';
 import { loadConfig } from '@/config/loader';
 import {
   loadIndexFile,
   validateIndexConsistency,
 } from '@/core/index-manager';
-import { problemToLintError, validationErrorToLintError } from '@/cli/output/reporters';
+import { scanDocuments } from '@/core/scanner';
+import { validateDocId } from '@/core/validator';
 
 import type { LintError } from '@/cli/output/reporters';
 

@@ -13,9 +13,10 @@ import { pathToFileURL } from 'node:url';
 
 import { Command } from 'commander';
 
+import { logger } from '../utils/logger.js';
+
 import { registerLintCommand } from './commands/lint.js';
 import { registerScanCommand } from './commands/scan.js';
-import { logger } from '../utils/logger.js';
 
 // package.jsonからバージョンを取得（ビルド時に解決される）
 const VERSION = '0.1.0';

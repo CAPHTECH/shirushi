@@ -11,11 +11,12 @@
  * - DUPLICATE_DOC_ID_IN_INDEX: インデックス内でdoc_idが重複
  */
 
-import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import yaml, { JSON_SCHEMA } from 'js-yaml';
+import { z } from 'zod';
 
 import { ShirushiErrors } from '@/errors/definitions';
 
@@ -23,25 +24,35 @@ import type { LintError } from '@/cli/output/reporters';
 import type { DocumentParseResult } from '@/types/document';
 
 /**
+ * インデックスエントリのZodスキーマ
+ */
+const IndexEntrySchema = z.object({
+  doc_id: z.string().min(1),
+  path: z.string().min(1),
+  title: z.string().optional(),
+  doc_type: z.string().optional(),
+  status: z.string().optional(),
+  version: z.string().optional(),
+  owner: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+/**
+ * インデックスファイルのZodスキーマ
+ */
+const IndexFileSchema = z.object({
+  documents: z.array(IndexEntrySchema),
+});
+
+/**
  * インデックスエントリ
  */
-export interface IndexEntry {
-  doc_id: string;
-  path: string;
-  title?: string;
-  doc_type?: string;
-  status?: string;
-  version?: string;
-  owner?: string;
-  tags?: string[];
-}
+export type IndexEntry = z.infer<typeof IndexEntrySchema>;
 
 /**
  * インデックスファイル構造
  */
-export interface IndexFile {
-  documents: IndexEntry[];
-}
+export type IndexFile = z.infer<typeof IndexFileSchema>;
 
 /**
  * 整合性検証結果
@@ -60,6 +71,7 @@ const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
  * @param indexPath - インデックスファイルのパス
  * @param cwd - ベースディレクトリ
  * @returns インデックスファイル内容、またはnull（ファイルが存在しない場合）
+ * @throws Error - YAMLパースエラーまたはスキーマ検証エラー
  */
 export async function loadIndexFile(
   indexPath: string,
@@ -74,24 +86,18 @@ export async function loadIndexFile(
   }
 
   const content = await readFile(absolutePath, 'utf8');
-  const parsed = yaml.load(content, YAML_OPTIONS) as unknown;
+  const parsed = yaml.load(content, YAML_OPTIONS);
 
-  // 基本的な構造検証
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`Index file must be a YAML object: ${absolutePath}`);
+  // Zodによる構造検証
+  const result = IndexFileSchema.safeParse(parsed);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join(', ');
+    throw new Error(`Invalid index file structure: ${issues}`);
   }
 
-  const data = parsed as Record<string, unknown>;
-
-  if (!Array.isArray(data['documents'])) {
-    throw new Error(
-      `Index file must have a 'documents' array: ${absolutePath}`
-    );
-  }
-
-  return {
-    documents: data['documents'] as IndexEntry[],
-  };
+  return result.data;
 }
 
 /**

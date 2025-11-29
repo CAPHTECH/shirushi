@@ -125,8 +125,9 @@ export async function scanDocuments(
   });
 
   // filterPathsが指定されていれば絞り込み
-  const targetFiles = options.filterPaths
-    ? files.filter((f) => options.filterPaths!.includes(f))
+  const filterPaths = options.filterPaths;
+  const targetFiles = filterPaths
+    ? files.filter((f) => filterPaths.includes(f))
     : files;
 
   // 各ファイルを並列でパース

@@ -9,21 +9,22 @@ import chalk from 'chalk';
 
 import { ErrorSeverity } from '@/errors/definitions';
 
+import type { OutputFormat } from './formatters';
+import type { ValidationError } from '@/dimensions';
 import type {
   LawDomain,
   ErrorSeverity as ErrorSeverityType,
-  ShirushiErrorCode,
 } from '@/errors/definitions';
 import type { DocumentProblem } from '@/types/document';
-import type { ValidationError } from '@/dimensions';
-import type { OutputFormat } from './formatters';
 
 /**
  * lintエラー（ドキュメント単位）
+ *
+ * codeはShirushiErrorCodeまたは外部からの任意のエラーコード文字列
  */
 export interface LintError {
   path: string;
-  code: ShirushiErrorCode | string;
+  code: string;
   message: string;
   domain: LawDomain;
   severity: ErrorSeverityType;

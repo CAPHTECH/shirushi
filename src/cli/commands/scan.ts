@@ -7,16 +7,16 @@
  * - --format <table|json|yaml>: 出力フォーマット
  */
 
-import { loadConfig } from '@/config/loader';
-import { scanDocuments } from '@/core/scanner';
 import {
   toScanOutput,
   formatScanResult,
 } from '@/cli/output/formatters';
+import { loadConfig } from '@/config/loader';
+import { scanDocuments } from '@/core/scanner';
 import { logger } from '@/utils/logger';
 
-import type { Command } from 'commander';
 import type { OutputFormat } from '@/cli/output/formatters';
+import type { Command } from 'commander';
 
 /**
  * scanコマンドオプション
@@ -24,6 +24,14 @@ import type { OutputFormat } from '@/cli/output/formatters';
 export interface ScanOptions {
   config?: string;
   format?: OutputFormat;
+}
+
+/**
+ * Commander.jsアクションハンドラ用の型定義
+ */
+interface ScanCliOptions {
+  config?: string;
+  format?: string;
 }
 
 /**
@@ -79,10 +87,10 @@ export function registerScanCommand(program: Command): void {
       'Output format (table, json, yaml)',
       'table'
     )
-    .action(async (opts) => {
+    .action(async (opts: ScanCliOptions) => {
       const exitCode = await executeScan({
-        config: opts.config,
-        format: opts.format as OutputFormat,
+        ...(opts.config ? { config: opts.config } : {}),
+        ...(opts.format ? { format: opts.format as OutputFormat } : {}),
       });
       process.exit(exitCode);
     });
