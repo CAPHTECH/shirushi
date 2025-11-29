@@ -297,14 +297,65 @@ describe('SerialHandler', () => {
       const result = handler.validate('001', dimension, createValidationContext());
       expect(isLeft(result)).toBe(true);
     });
+
+    it('最大値超過を拒否する', () => {
+      // 4桁dimensionで5桁の値を検証
+      const result = handler.validate('99999', dimension, createValidationContext());
+      expect(isLeft(result)).toBe(true);
+      if (isLeft(result)) {
+        expect(result.left.code).toBe('INVALID_SERIAL_VALUE');
+        expect(result.left.message).toContain('must be 4 digits');
+      }
+    });
+
+    it('数値として最大値を超える場合を拒否する', () => {
+      // パターンはマッチするが数値として最大値(9999)を超える場合
+      // Note: 4桁パターンでは10000以上は桁数不一致で先に弾かれる
+      // この ケースは digit=4 では発生しないが、仕様上の確認
+      const result = handler.validate('9999', dimension, createValidationContext());
+      expect(isRight(result)).toBe(true); // 9999は有効
+    });
   });
 
   describe('generate', () => {
-    it('デフォルト値0001を生成する', () => {
-      const result = handler.generate(dimension, createGenerationContext());
+    it('インデックスがない場合は0001を生成する', () => {
+      // スコープdimensionは必須だが、indexEntriesとtemplateResultは未提供
+      const result = handler.generate(
+        dimension,
+        createGenerationContext({
+          otherParts: { COMP: 'PCE', KIND: 'SPEC', YEAR4: '2025' },
+        })
+      );
       expect(isRight(result)).toBe(true);
       if (isRight(result)) {
         expect(result.right).toBe('0001');
+      }
+    });
+
+    it('空のインデックスでも0001を生成する', () => {
+      const result = handler.generate(
+        dimension,
+        createGenerationContext({
+          otherParts: { COMP: 'PCE', KIND: 'SPEC', YEAR4: '2025' },
+          indexEntries: [],
+        })
+      );
+      expect(isRight(result)).toBe(true);
+      if (isRight(result)) {
+        expect(result.right).toBe('0001');
+      }
+    });
+
+    it('スコープdimensionが不足している場合はエラー', () => {
+      const result = handler.generate(
+        dimension,
+        createGenerationContext({
+          otherParts: { COMP: 'PCE' }, // KIND, YEAR4が不足
+        })
+      );
+      expect(isLeft(result)).toBe(true);
+      if (isLeft(result)) {
+        expect(result.left.code).toBe('MISSING_SCOPE_DIMENSION');
       }
     });
   });

@@ -10,7 +10,9 @@
 import { type Either } from 'fp-ts/Either';
 
 import type { DimensionDefinition } from '@/config/schema';
+import type { IndexEntry } from '@/core/index-manager';
 import type { ShirushiErrorCode } from '@/errors/definitions';
+import type { TemplateParseResult } from '@/parsers/template';
 import type { DocumentMetadata } from '@/types/document';
 
 // Dimension型
@@ -68,6 +70,10 @@ export interface GenerationContext {
   otherParts: Record<string, string>;
   /** dimension名 */
   dimensionName: string;
+  /** インデックスエントリ（serial採番用、optional） */
+  indexEntries?: IndexEntry[];
+  /** テンプレート解析結果（serial採番用、optional） */
+  templateResult?: TemplateParseResult;
 }
 
 /**
