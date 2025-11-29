@@ -165,6 +165,43 @@ export const ShirushiErrors = {
     severity: ErrorSeverity.Error,
     description: 'A placeholder in id_format does not have a corresponding dimension definition.',
   },
+
+  // Index Domain (インデックス整合性検証)
+  MISSING_FILE_FOR_INDEX: {
+    code: 'MISSING_FILE_FOR_INDEX',
+    message: 'Index entry references non-existent file',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'The file path in the index does not exist.',
+  },
+  UNINDEXED_DOC_ID: {
+    code: 'UNINDEXED_DOC_ID',
+    message: 'Document has doc_id but is not in index',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'The document contains a doc_id that is not registered in the index file.',
+  },
+  DOC_ID_MISMATCH_WITH_INDEX: {
+    code: 'DOC_ID_MISMATCH_WITH_INDEX',
+    message: 'Document doc_id does not match index entry',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'The doc_id in the document differs from the doc_id in the index.',
+  },
+  DOC_ID_CHANGED: {
+    code: 'DOC_ID_CHANGED',
+    message: 'doc_id was changed from base ref',
+    domain: LawDomain.Git,
+    severity: ErrorSeverity.Error,
+    description: 'The doc_id was modified compared to the specified git ref.',
+  },
+  DUPLICATE_DOC_ID_IN_INDEX: {
+    code: 'DUPLICATE_DOC_ID_IN_INDEX',
+    message: 'Duplicate doc_id found in index',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'The same doc_id appears multiple times in the index file.',
+  },
 } as const;
 
 export type ShirushiErrorCode = keyof typeof ShirushiErrors;
