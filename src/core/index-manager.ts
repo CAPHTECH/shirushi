@@ -14,6 +14,7 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { posix } from 'node:path';
 
 import yaml, { JSON_SCHEMA } from 'js-yaml';
 import { z } from 'zod';
@@ -64,6 +65,14 @@ export interface IndexValidationResult {
 }
 
 const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
+
+/**
+ * パスをPOSIX形式（フォワードスラッシュ）に正規化
+ * Windows互換性のため
+ */
+function normalizePath(filePath: string): string {
+  return filePath.split(path.sep).join(posix.sep);
+}
 
 /**
  * インデックスファイルを読み込み
@@ -216,7 +225,9 @@ export function validateIndexConsistency(
   for (const doc of documents) {
     if (!doc.docId) continue;
 
-    const indexEntry = indexByPath.get(doc.path);
+    // Windows互換性のためパスを正規化して比較
+    const normalizedPath = normalizePath(doc.path);
+    const indexEntry = indexByPath.get(normalizedPath);
 
     if (!indexEntry) {
       // ドキュメントにdoc_idがあるがインデックスに未登録
