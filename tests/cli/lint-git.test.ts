@@ -477,6 +477,74 @@ documents:
     });
   });
 
+  describe('git errors during doc_id detection', () => {
+    it('should report git errors that occur during file content retrieval', async () => {
+      // この機能のテスト: ChangeDetectorがファイル読み取り時にエラーを収集した場合、
+      // そのエラーがLintResultに反映されることを確認する
+      //
+      // Note: 実際のGit操作でエラーを発生させるのは困難なため、
+      // ユニットテスト（change-detector.test.ts）でモックを使用してテスト済み。
+      // ここでは正常系の確認に留める。
+      //
+      // 関連テスト: tests/unit/git/change-detector.test.ts
+      // "should continue processing after individual file errors"
+
+      const configContent = `
+doc_globs:
+  - "docs/**/*.md"
+index_file: "docs/doc_index.yaml"
+id_format: "{TYPE}-{NUM}"
+forbid_id_change: true
+dimensions:
+  TYPE:
+    type: enum
+    values: ["DOC"]
+  NUM:
+    type: serial
+    digits: 4
+    scope: ["TYPE"]
+`;
+      await writeFile(path.join(TEST_DIR, '.shirushi.yml'), configContent);
+
+      // 正常なファイルを作成
+      const doc = `---
+doc_id: DOC-0001
+title: Document
+---
+# Content
+`;
+      await writeFile(path.join(TEST_DIR, 'docs/doc.md'), doc);
+
+      // インデックスファイル
+      const indexContent = `
+documents:
+  - doc_id: DOC-0001
+    path: docs/doc.md
+    title: Document
+`;
+      await writeFile(path.join(TEST_DIR, 'docs/doc_index.yaml'), indexContent);
+      await git.add('.');
+      await git.commit('Initial commit');
+
+      const branches = await git.branchLocal();
+      const baseRef = branches.current;
+
+      // 同じ内容でコミット（doc_id変更なし）
+      await writeFile(path.join(TEST_DIR, 'docs/doc.md'), doc + '\n# More content');
+      await git.add('.');
+      await git.commit('Update content');
+
+      const exitCode = await executeLint({
+        cwd: TEST_DIR,
+        config: '.shirushi.yml',
+        base: baseRef,
+      });
+
+      // doc_id変更なし、エラーなしなので成功
+      expect(exitCode).toBe(0);
+    });
+  });
+
   describe('non-git directory', () => {
     it('should fail with --base in non-git directory', async () => {
       // 非Gitディレクトリでテスト

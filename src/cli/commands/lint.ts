@@ -91,6 +91,10 @@ function matchesDocGlobs(filePath: string, globs: string[]): boolean {
 
 /**
  * 変更検出結果をLintErrorに変換
+ *
+ * doc_id変更と、検出中に発生したGitエラーの両方をLintErrorに変換する。
+ * 個別ファイルのGitエラー（git show失敗など）を無視すると、
+ * doc_id改ざんが見落とされる可能性があるため、エラーとして報告する。
  */
 function changeResultToLintErrors(
   result: ChangeDetectionResult,
@@ -98,6 +102,7 @@ function changeResultToLintErrors(
 ): LintError[] {
   const errors: LintError[] = [];
 
+  // doc_id変更をエラーに変換
   for (const change of result.changedDocIds) {
     errors.push({
       path: change.path,
@@ -109,6 +114,22 @@ function changeResultToLintErrors(
         oldDocId: change.oldDocId,
         newDocId: change.newDocId,
         baseRef,
+      },
+    });
+  }
+
+  // 検出中に発生したGitエラーもLintErrorとして報告
+  // これにより、git show失敗などで検出できなかったファイルが明示される
+  for (const gitError of result.errors) {
+    errors.push({
+      path: gitError.context?.path ?? '(unknown)',
+      code: gitError.code,
+      message: gitError.message,
+      domain: LawDomain.Git,
+      severity: ErrorSeverity.Error,
+      details: {
+        baseRef,
+        originalError: gitError.context?.originalError,
       },
     });
   }
