@@ -13,13 +13,13 @@
     "markdown",
     "yaml"
   ],
-  "homepage": "https://github.com/your-org/shirushi",
+  "homepage": "https://github.com/CAPHTECH/shirushi",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/shirushi.git"
+    "url": "https://github.com/CAPHTECH/shirushi.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/shirushi/issues"
+    "url": "https://github.com/CAPHTECH/shirushi/issues"
   },
   "license": "MIT",
   "author": "Your Organization",
