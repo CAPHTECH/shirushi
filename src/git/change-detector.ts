@@ -14,6 +14,7 @@ import { parseYamlContent } from '@/parsers/yaml';
 
 import type {
   ChangeDetectionResult,
+  DetectionTarget,
   GitError,
   GitOperations,
 } from './types';
@@ -47,12 +48,12 @@ export class ChangeDetector {
    * 指定されたファイル群のdoc_id変更を検出
    *
    * @param baseRef - 比較対象のGit参照
-   * @param targetPaths - 検出対象のファイルパス配列
+   * @param targets - 検出対象のファイル配列（リネーム情報を含む）
    * @returns 変更検出結果
    */
   async detectDocIdChanges(
     baseRef: string,
-    targetPaths: string[]
+    targets: DetectionTarget[]
   ): Promise<Either<GitError, ChangeDetectionResult>> {
     const result: ChangeDetectionResult = {
       changedDocIds: [],
@@ -61,8 +62,8 @@ export class ChangeDetector {
       errors: [],
     };
 
-    for (const filePath of targetPaths) {
-      const detection = await this.detectSingleFileChange(baseRef, filePath);
+    for (const target of targets) {
+      const detection = await this.detectSingleFileChange(baseRef, target);
 
       if (isLeft(detection)) {
         // 個別ファイルのエラーは収集して処理を継続
@@ -72,12 +73,12 @@ export class ChangeDetector {
 
       const change = detection.right;
       if (change.isNew) {
-        result.newFiles.push(filePath);
+        result.newFiles.push(target.path);
       } else if (change.isDeleted) {
-        result.deletedFiles.push(filePath);
+        result.deletedFiles.push(target.path);
       } else if (change.docIdChanged) {
         result.changedDocIds.push({
-          path: filePath,
+          path: target.path,
           oldDocId: change.oldDocId,
           newDocId: change.newDocId,
           changeType: 'modified',
@@ -90,13 +91,20 @@ export class ChangeDetector {
 
   /**
    * 単一ファイルのdoc_id変更を検出
+   *
+   * リネームされたファイルの場合、oldPathを使用してベースrefの内容を取得する。
+   * これにより、ファイル名変更と同時にdoc_idが変更された場合も検出できる。
    */
   private async detectSingleFileChange(
     baseRef: string,
-    filePath: string
+    target: DetectionTarget
   ): Promise<Either<GitError, SingleFileChange>> {
+    const { path: filePath, oldPath } = target;
+
     // ベースrefでのコンテンツを取得
-    const baseContentResult = await this.gitOps.getFileContent(filePath, baseRef);
+    // リネームの場合はoldPathから取得する（重要: これがないとリネーム+doc_id変更を検出できない）
+    const basePathToUse = oldPath ?? filePath;
+    const baseContentResult = await this.gitOps.getFileContent(basePathToUse, baseRef);
     if (isLeft(baseContentResult)) {
       return baseContentResult;
     }
@@ -110,9 +118,9 @@ export class ChangeDetector {
     const baseContent = baseContentResult.right;
     const currentContent = currentContentResult.right;
 
-    // doc_idを抽出
+    // doc_idを抽出（拡張子判定用にそれぞれのパスを使用）
     const baseDocId = baseContent
-      ? this.extractDocId(baseContent, filePath)
+      ? this.extractDocId(baseContent, basePathToUse)
       : null;
     const currentDocId = currentContent
       ? this.extractDocId(currentContent, filePath)

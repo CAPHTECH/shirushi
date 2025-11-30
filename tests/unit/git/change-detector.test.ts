@@ -53,7 +53,7 @@ title: Modified
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/test.md',
+        { path: 'docs/test.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -88,7 +88,7 @@ title: Modified`;
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/spec.yaml',
+        { path: 'docs/spec.yaml' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -117,7 +117,7 @@ doc_id: DOC-0001
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/new.md',
+        { path: 'docs/new.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -145,7 +145,7 @@ doc_id: DOC-0001
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/deleted.md',
+        { path: 'docs/deleted.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -168,7 +168,7 @@ title: Unchanged
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/unchanged.md',
+        { path: 'docs/unchanged.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -191,7 +191,7 @@ title: No doc_id
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/no-id.md',
+        { path: 'docs/no-id.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -224,7 +224,7 @@ title: With doc_id now
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/added-id.md',
+        { path: 'docs/added-id.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -259,7 +259,7 @@ title: Without doc_id now
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/removed-id.md',
+        { path: 'docs/removed-id.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -292,9 +292,9 @@ title: Without doc_id now
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/a.md', // new file
-        'docs/b.md', // unchanged
-        'docs/c.md', // modified
+        { path: 'docs/a.md' }, // new file
+        { path: 'docs/b.md' }, // unchanged
+        { path: 'docs/c.md' }, // modified
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -327,8 +327,8 @@ title: Without doc_id now
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/error.md',
-        'docs/valid.md',
+        { path: 'docs/error.md' },
+        { path: 'docs/valid.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -360,7 +360,7 @@ title: Modified`;
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/spec.yml',
+        { path: 'docs/spec.yml' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -378,13 +378,103 @@ title: Modified`;
 
       const detector = new ChangeDetector(mockGitOps);
       const result = await detector.detectDocIdChanges('main', [
-        'docs/file.txt',
+        { path: 'docs/file.txt' },
       ]);
 
       expect(isRight(result)).toBe(true);
       if (isRight(result)) {
         // No changes detected (both doc_ids are null)
         expect(result.right.changedDocIds).toHaveLength(0);
+      }
+    });
+
+    it('should detect doc_id modification in renamed file using oldPath', async () => {
+      // ファイルがリネームされ、かつdoc_idも変更されたケース
+      // oldPath を使用してベースrefのコンテンツを取得する
+      const baseContent = `---
+doc_id: DOC-0001
+title: Old Name
+---
+# Content`;
+
+      const currentContent = `---
+doc_id: DOC-9999
+title: New Name
+---
+# Content`;
+
+      const mockGitOps = createMockGitOps({
+        getFileContent: vi.fn().mockImplementation((path, ref) => {
+          // ベースrefでは旧パス (docs/old.md) を参照
+          if (path === 'docs/old.md' && ref === 'main') {
+            return Promise.resolve(right(baseContent));
+          }
+          // 現在は新パス (docs/new.md) を参照
+          if (path === 'docs/new.md' && !ref) {
+            return Promise.resolve(right(currentContent));
+          }
+          // 新パスはベースrefに存在しない
+          if (path === 'docs/new.md' && ref === 'main') {
+            return Promise.resolve(right(null));
+          }
+          return Promise.resolve(right(null));
+        }),
+      });
+
+      const detector = new ChangeDetector(mockGitOps);
+      // oldPath を指定することで、リネーム前のパスからベースコンテンツを取得
+      const result = await detector.detectDocIdChanges('main', [
+        { path: 'docs/new.md', oldPath: 'docs/old.md' },
+      ]);
+
+      expect(isRight(result)).toBe(true);
+      if (isRight(result)) {
+        // リネームされたファイルでdoc_id変更を検出
+        expect(result.right.changedDocIds).toHaveLength(1);
+        expect(result.right.changedDocIds[0]).toEqual({
+          path: 'docs/new.md',
+          oldDocId: 'DOC-0001',
+          newDocId: 'DOC-9999',
+          changeType: 'modified',
+        });
+        // 新規ファイルとして誤検出されていない
+        expect(result.right.newFiles).toHaveLength(0);
+      }
+    });
+
+    it('should not report change for renamed file with unchanged doc_id', async () => {
+      // ファイルがリネームされたが、doc_idは変更されていないケース
+      const content = `---
+doc_id: DOC-0001
+title: Same ID
+---
+# Content`;
+
+      const mockGitOps = createMockGitOps({
+        getFileContent: vi.fn().mockImplementation((path, ref) => {
+          // ベースrefでは旧パスからコンテンツを取得
+          if (path === 'docs/old.md' && ref === 'main') {
+            return Promise.resolve(right(content));
+          }
+          // 現在は新パスからコンテンツを取得
+          if (path === 'docs/new.md' && !ref) {
+            return Promise.resolve(right(content));
+          }
+          return Promise.resolve(right(null));
+        }),
+      });
+
+      const detector = new ChangeDetector(mockGitOps);
+      const result = await detector.detectDocIdChanges('main', [
+        { path: 'docs/new.md', oldPath: 'docs/old.md' },
+      ]);
+
+      expect(isRight(result)).toBe(true);
+      if (isRight(result)) {
+        // doc_idは同じなので変更なし
+        expect(result.right.changedDocIds).toHaveLength(0);
+        expect(result.right.newFiles).toHaveLength(0);
+        expect(result.right.deletedFiles).toHaveLength(0);
       }
     });
   });

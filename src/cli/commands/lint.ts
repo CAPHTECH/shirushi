@@ -39,7 +39,7 @@ import type { OutputFormat } from '@/cli/output/formatters';
 import type { LintError } from '@/cli/output/reporters';
 import type { ShirushiConfig } from '@/config/schema';
 import type { ScanResult } from '@/core/scanner';
-import type { GitError, ChangeDetectionResult } from '@/git';
+import type { GitError, ChangeDetectionResult, ChangedFile, DetectionTarget } from '@/git';
 import type { Command } from 'commander';
 
 /**
@@ -263,9 +263,12 @@ export async function executeLint(options: LintOptions): Promise<number> {
   }
   const { config } = loaded;
 
-  // 3. 変更ファイルを取得（--changed-only 指定時）
+  // 3. 変更ファイルを取得（--changed-only 指定時、または --base 指定時）
+  // リネーム情報を保持するためにChangedFile[]を保存
+  let changedFiles: ChangedFile[] | undefined;
   let targetPaths: string[] | undefined;
-  if (options.changedOnly) {
+
+  if (options.changedOnly || options.base) {
     const gitOps = createGitOperations({ cwd });
     const changedResult = await gitOps.getChangedFiles(options.base);
 
@@ -274,8 +277,12 @@ export async function executeLint(options: LintOptions): Promise<number> {
       return 1;
     }
 
+    changedFiles = changedResult.right;
+  }
+
+  if (options.changedOnly && changedFiles) {
     // 削除ファイルを除外し、doc_globsにマッチするファイルのみ
-    targetPaths = changedResult.right
+    targetPaths = changedFiles
       .filter((f) => f.status !== 'deleted')
       .filter((f) => matchesDocGlobs(f.path, config.doc_globs))
       .map((f) => f.path);
@@ -312,11 +319,23 @@ export async function executeLint(options: LintOptions): Promise<number> {
   if (options.base && config.forbid_id_change) {
     const gitOps = createGitOperations({ cwd });
     const detector = createChangeDetector(gitOps);
-    const documentPaths = scanResult.documents.map((d) => d.path);
+
+    // リネーム情報を含む検出対象を構築
+    // changedFilesからリネーム情報を取得し、スキャンされたドキュメントと紐付ける
+    const detectionTargets: DetectionTarget[] = scanResult.documents.map((d) => {
+      // changedFilesからこのパスに対応するエントリを検索
+      const changedFile = changedFiles?.find((f) => f.path === d.path);
+      return {
+        path: d.path,
+        // リネームされたファイルの場合、oldPathを設定
+        // これにより、baseRefでは旧パスからコンテンツを取得する
+        ...(changedFile?.oldPath ? { oldPath: changedFile.oldPath } : {}),
+      };
+    });
 
     const changeResult = await detector.detectDocIdChanges(
       options.base,
-      documentPaths
+      detectionTargets
     );
 
     if (isRight(changeResult)) {

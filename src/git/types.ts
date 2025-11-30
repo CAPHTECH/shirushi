@@ -12,6 +12,17 @@ import { type Either } from 'fp-ts/Either';
 import type { ShirushiErrorCode } from '@/errors/definitions';
 
 /**
+ * 変更検出対象ファイル
+ * ChangeDetectorへの入力として使用
+ */
+export interface DetectionTarget {
+  /** 現在のファイルパス */
+  path: string;
+  /** リネーム前のパス（リネームされた場合のみ） */
+  oldPath?: string;
+}
+
+/**
  * Git操作エラー情報
  * Git操作失敗時のエラー詳細を構造化して表現
  */

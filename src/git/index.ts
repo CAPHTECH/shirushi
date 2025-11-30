@@ -9,6 +9,7 @@
 export type {
   GitError,
   ChangedFile,
+  DetectionTarget,
   DocIdChange,
   ChangeDetectionResult,
   GitOperations,

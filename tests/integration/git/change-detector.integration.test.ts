@@ -70,8 +70,8 @@ title: Modified Document
       // 変更検出
       const gitOps = createGitOperations({ cwd: TEST_DIR });
       const detector = createChangeDetector(gitOps);
-      const result = await detector.detectDocIdChanges(`${mainBranch  }~1`, [
-        'docs/test.md',
+      const result = await detector.detectDocIdChanges(`${mainBranch}~1`, [
+        { path: 'docs/test.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -108,8 +108,8 @@ title: Modified Spec
 
       const gitOps = createGitOperations({ cwd: TEST_DIR });
       const detector = createChangeDetector(gitOps);
-      const result = await detector.detectDocIdChanges(`${mainBranch  }~1`, [
-        'docs/spec.yaml',
+      const result = await detector.detectDocIdChanges(`${mainBranch}~1`, [
+        { path: 'docs/spec.yaml' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -143,8 +143,8 @@ title: New Document
 
       const gitOps = createGitOperations({ cwd: TEST_DIR });
       const detector = createChangeDetector(gitOps);
-      const result = await detector.detectDocIdChanges(`${mainBranch  }~1`, [
-        'docs/new.md',
+      const result = await detector.detectDocIdChanges(`${mainBranch}~1`, [
+        { path: 'docs/new.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -188,8 +188,8 @@ description: Added description
 
       const gitOps = createGitOperations({ cwd: TEST_DIR });
       const detector = createChangeDetector(gitOps);
-      const result = await detector.detectDocIdChanges(`${mainBranch  }~1`, [
-        'docs/unchanged.md',
+      const result = await detector.detectDocIdChanges(`${mainBranch}~1`, [
+        { path: 'docs/unchanged.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -230,8 +230,8 @@ title: Now With ID
 
       const gitOps = createGitOperations({ cwd: TEST_DIR });
       const detector = createChangeDetector(gitOps);
-      const result = await detector.detectDocIdChanges(`${mainBranch  }~1`, [
-        'docs/add-id.md',
+      const result = await detector.detectDocIdChanges(`${mainBranch}~1`, [
+        { path: 'docs/add-id.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
@@ -277,9 +277,9 @@ title: Doc 1 Modified
 
       const gitOps = createGitOperations({ cwd: TEST_DIR });
       const detector = createChangeDetector(gitOps);
-      const result = await detector.detectDocIdChanges(`${mainBranch  }~1`, [
-        'docs/doc1.md',
-        'docs/doc2.md',
+      const result = await detector.detectDocIdChanges(`${mainBranch}~1`, [
+        { path: 'docs/doc1.md' },
+        { path: 'docs/doc2.md' },
       ]);
 
       expect(isRight(result)).toBe(true);
