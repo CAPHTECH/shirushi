@@ -530,7 +530,7 @@ documents:
       const baseRef = branches.current;
 
       // 同じ内容でコミット（doc_id変更なし）
-      await writeFile(path.join(TEST_DIR, 'docs/doc.md'), doc + '\n# More content');
+      await writeFile(path.join(TEST_DIR, 'docs/doc.md'), `${doc}\n# More content`);
       await git.add('.');
       await git.commit('Update content');
 
