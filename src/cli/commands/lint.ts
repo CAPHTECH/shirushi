@@ -92,9 +92,11 @@ function normalizePath(filePath: string): string {
 
 /**
  * ファイルパスがdoc_globsにマッチするかチェック
+ * Windows互換性のためパスを正規化してからマッチング
  */
 function matchesDocGlobs(filePath: string, globs: string[]): boolean {
-  return globs.some((pattern) => minimatch(filePath, pattern));
+  const normalizedPath = normalizePath(filePath);
+  return globs.some((pattern) => minimatch(normalizedPath, pattern));
 }
 
 /**
@@ -290,10 +292,11 @@ export async function executeLint(options: LintOptions): Promise<number> {
 
   if (options.changedOnly && changedFiles) {
     // 削除ファイルを除外し、doc_globsにマッチするファイルのみ
+    // Windows互換性のためパスを正規化
     targetPaths = changedFiles
       .filter((f) => f.status !== 'deleted')
       .filter((f) => matchesDocGlobs(f.path, config.doc_globs))
-      .map((f) => f.path);
+      .map((f) => normalizePath(f.path));
 
     if (targetPaths.length === 0) {
       if (!options.quiet) {
