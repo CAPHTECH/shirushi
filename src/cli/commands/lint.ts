@@ -83,6 +83,14 @@ function formatGitError(error: GitError): string {
 }
 
 /**
+ * パスを正規化（バックスラッシュをフォワードスラッシュに変換）
+ * Windows互換性のため
+ */
+function normalizePath(filePath: string): string {
+  return filePath.replace(/\\/g, '/');
+}
+
+/**
  * ファイルパスがdoc_globsにマッチするかチェック
  */
 function matchesDocGlobs(filePath: string, globs: string[]): boolean {
@@ -324,7 +332,11 @@ export async function executeLint(options: LintOptions): Promise<number> {
     // changedFilesからリネーム情報を取得し、スキャンされたドキュメントと紐付ける
     const detectionTargets: DetectionTarget[] = scanResult.documents.map((d) => {
       // changedFilesからこのパスに対応するエントリを検索
-      const changedFile = changedFiles?.find((f) => f.path === d.path);
+      // Windows互換性のためパスを正規化して比較
+      const normalizedDocPath = normalizePath(d.path);
+      const changedFile = changedFiles?.find(
+        (f) => normalizePath(f.path) === normalizedDocPath
+      );
       return {
         path: d.path,
         // リネームされたファイルの場合、oldPathを設定
