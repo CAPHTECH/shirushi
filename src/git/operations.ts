@@ -114,7 +114,9 @@ export class SimpleGitOperations implements GitOperations {
       }
 
       // 指定されたrefからgit showで取得
-      const content = await this.git.show([`${ref}:${filePath}`]);
+      // Git内部ではフォワードスラッシュを使用するため、Windows対応で正規化
+      const normalizedPath = filePath.replace(/\\/g, '/');
+      const content = await this.git.show([`${ref}:${normalizedPath}`]);
       return right(content);
     } catch (error) {
       // ファイルが存在しない場合はnullを返す（エラーではない）
