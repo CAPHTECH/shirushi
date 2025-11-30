@@ -195,6 +195,27 @@ export const ShirushiErrors = {
     severity: ErrorSeverity.Error,
     description: 'The doc_id was modified compared to the specified git ref.',
   },
+  NOT_A_GIT_REPO: {
+    code: 'NOT_A_GIT_REPO',
+    message: 'Current directory is not a Git repository',
+    domain: LawDomain.Git,
+    severity: ErrorSeverity.Error,
+    description: 'The --base or --changed-only option requires a Git repository.',
+  },
+  INVALID_GIT_REF: {
+    code: 'INVALID_GIT_REF',
+    message: 'Specified Git reference does not exist',
+    domain: LawDomain.Git,
+    severity: ErrorSeverity.Error,
+    description: 'The provided branch, tag, or commit SHA was not found.',
+  },
+  GIT_OPERATION_FAILED: {
+    code: 'GIT_OPERATION_FAILED',
+    message: 'Git operation failed',
+    domain: LawDomain.Git,
+    severity: ErrorSeverity.Error,
+    description: 'An unexpected error occurred during a Git operation.',
+  },
   DUPLICATE_DOC_ID_IN_INDEX: {
     code: 'DUPLICATE_DOC_ID_IN_INDEX',
     message: 'Duplicate doc_id found in index',
