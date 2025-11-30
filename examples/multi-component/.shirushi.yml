@@ -1,5 +1,5 @@
-# PCE / Kakusill / EdgePatch Configuration
-# This is the full example from the Shirushi specification
+# Multi-Component Project Configuration
+# Example showing path-based component selection with checksum
 
 # Files to scan for doc_id
 doc_globs:
@@ -14,23 +14,23 @@ index_file: "docs/doc_index.yaml"
 id_field: "doc_id"
 
 # ID Format: COMP-KIND-YEAR4-SER4-CHK1
-# Example: PCE-SPEC-2025-0001-G
+# Example: FRONT-SPEC-2025-0001-X
 id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}"
 
 # Dimension definitions
 dimensions:
-  # Component name (PCE, KKS, EDGE)
+  # Component name (FRONT, BACK, GW)
   COMP:
     type: enum
-    values: ["PCE", "KKS", "EDGE"]
+    values: ["FRONT", "BACK", "GW"]
     select:
       by_path:
-        - pattern: "docs/pce/**"
-          value: "PCE"
-        - pattern: "docs/kakusill/**"
-          value: "KKS"
-        - pattern: "docs/edge/**"
-          value: "EDGE"
+        - pattern: "docs/frontend/**"
+          value: "FRONT"
+        - pattern: "docs/backend/**"
+          value: "BACK"
+        - pattern: "docs/gateway/**"
+          value: "GW"
 
   # Document kind derived from doc_type
   KIND:

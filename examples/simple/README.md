@@ -141,5 +141,5 @@ This adds a checksum character (A-Z) to detect ID modifications.
 ## Next Steps
 
 - Read [User Guide](../../docs/user-guide.md) for detailed documentation
-- Try [pce-kakusill-edge](../pce-kakusill-edge/) for a more complex example
-- See [advanced](../advanced/) for all features
+- Try [multi-component](../multi-component/) for a more complex example
+- See [getting-started](../getting-started/) for a step-by-step tutorial

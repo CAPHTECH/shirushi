@@ -1,28 +1,28 @@
-doc_id: KKS-SPEC-2025-0002-F
-title: Kakusill Service Principles
+doc_id: BACK-SPEC-2025-0001-Y
+title: Backend Service Principles
 doc_type: spec
 status: draft
 version: "0.3.2"
-owner: "caph/kakusill"
+owner: "team/backend"
 created_at: "2025-01-16"
 tags:
-  - Kakusill
+  - backend
   - principle
   - service-design
 
 principles:
-  - id: KKS-P001
+  - id: BACK-P001
     name: "Service Autonomy"
     description: "Each service should be independently deployable and operable"
     rationale: |
       Service autonomy enables teams to move faster and reduces coupling
       between different parts of the system.
     examples:
-      - "Kakusill services have their own databases"
+      - "Backend services have their own databases"
       - "Services communicate via well-defined APIs"
       - "No shared state between services"
 
-  - id: KKS-P002
+  - id: BACK-P002
     name: "API-First Design"
     description: "APIs are designed before implementation"
     rationale: |
@@ -33,7 +33,7 @@ principles:
       - "API reviews before coding"
       - "Consumer feedback incorporated early"
 
-  - id: KKS-P003
+  - id: BACK-P003
     name: "Observability by Default"
     description: "All services emit structured logs, metrics, and traces"
     rationale: |
@@ -44,7 +44,7 @@ principles:
       - "Prometheus metrics"
       - "OpenTelemetry tracing"
 
-  - id: KKS-P004
+  - id: BACK-P004
     name: "Graceful Degradation"
     description: "Services should degrade gracefully when dependencies fail"
     rationale: |
@@ -55,7 +55,7 @@ principles:
       - "Fallback values for non-critical data"
       - "Cached responses when services are down"
 
-  - id: KKS-P005
+  - id: BACK-P005
     name: "Zero-Downtime Deployments"
     description: "Deployments should not cause service interruptions"
     rationale: |

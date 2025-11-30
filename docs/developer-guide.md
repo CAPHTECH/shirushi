@@ -150,8 +150,8 @@ shirushi/
 │
 ├── examples/                   # Example configurations
 │   ├── simple/
-│   ├── pce-kakusill-edge/
-│   └── advanced/
+│   ├── multi-component/
+│   └── getting-started/
 │
 ├── .shirushi.yml               # Self-hosting config
 ├── package.json

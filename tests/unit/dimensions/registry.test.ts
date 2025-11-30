@@ -113,10 +113,10 @@ describe('dimensionToPattern', () => {
   it('enum dimensionからパターンを生成する', () => {
     const pattern = dimensionToPattern({
       type: 'enum',
-      values: ['PCE', 'KKS', 'EDGE'],
+      values: ['FRONT', 'BACK', 'GW'],
     });
 
-    expect(pattern).toBe('(PCE|KKS|EDGE)');
+    expect(pattern).toBe('(FRONT|BACK|GW)');
   });
 
   it('year dimensionからパターンを生成する', () => {

@@ -67,43 +67,43 @@ documents:
     created_at: "2025-11-19"
   - doc_id: SHI-ADR-2025-0001
     path: docs/adr/0001-use-discriminated-unions-for-dimensions.md
-    title: ADR-0001: Use Discriminated Unions for Dimension Types
+    title: "ADR-0001: Use Discriminated Unions for Dimension Types"
     version: "1.0.0"
     status: Accepted
     created_at: "2025-01-19"
   - doc_id: SHI-ADR-2025-0002
     path: docs/adr/0002-zod-for-configuration-validation.md
-    title: ADR-0002: Use Zod for Configuration Validation
+    title: "ADR-0002: Use Zod for Configuration Validation"
     version: "1.0.0"
     status: Accepted
     created_at: "2025-01-19"
   - doc_id: SHI-ADR-2025-0003
     path: docs/adr/0003-document-is-source-of-truth.md
-    title: ADR-0003: Document is Source of Truth for doc_id
+    title: "ADR-0003: Document is Source of Truth for doc_id"
     version: "1.0.0"
     status: Accepted
     created_at: "2025-01-19"
   - doc_id: SHI-ADR-2025-0004
     path: docs/adr/0004-simple-checksum-algorithm.md
-    title: ADR-0004: Use Simple mod26AZ Checksum Algorithm
+    title: "ADR-0004: Use Simple mod26AZ Checksum Algorithm"
     version: "1.0.0"
     status: Accepted
     created_at: "2025-01-19"
   - doc_id: SHI-ADR-2025-0005
     path: docs/adr/0005-defer-assign-command.md
-    title: ADR-0005: Defer assign Command to v0.2
+    title: "ADR-0005: Defer assign Command to v0.2"
     version: "1.0.0"
     status: Accepted
     created_at: "2025-01-19"
   - doc_id: SHI-ADR-2025-0006
     path: docs/adr/0006-no-gap-validation-for-serials.md
-    title: ADR-0006: No Gap Validation for Serial Numbers in v0.1
+    title: "ADR-0006: No Gap Validation for Serial Numbers in v0.1"
     version: "1.0.0"
     status: Accepted
     created_at: "2025-01-19"
   - doc_id: SHI-ADR-2025-0007
     path: docs/adr/0007-manual-index-synchronization.md
-    title: ADR-0007: Manual Index Synchronization Only
+    title: "ADR-0007: Manual Index Synchronization Only"
     version: "1.0.0"
     status: Accepted
     created_at: "2025-01-19"
@@ -115,7 +115,7 @@ documents:
     created_at: "2025-11-19"
   - doc_id: SHI-ADR-2025-0101
     path: docs/adr/template.md
-    title: ADR-XXXX: Template
+    title: "ADR-XXXX: Template"
     version: "0.1.0"
     status: Draft
     created_at: "2025-11-19"

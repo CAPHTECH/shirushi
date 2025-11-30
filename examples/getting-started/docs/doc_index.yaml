@@ -1,0 +1,12 @@
+# Document Index
+# This file tracks all documents and their IDs.
+# Keep this file in sync with your documents.
+
+documents:
+  - doc_id: DOC-2025-0001
+    path: docs/welcome.md
+    title: Welcome to Shirushi
+
+  - doc_id: DOC-2025-0002
+    path: docs/second-doc.md
+    title: Second Document Example

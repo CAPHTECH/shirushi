@@ -1,6 +1,6 @@
 ---
 doc_id: SHI-ADR-2025-0002
-title: ADR-0002: Use Zod for Configuration Validation
+title: "ADR-0002: Use Zod for Configuration Validation"
 version: "1.0.0"
 status: Accepted
 created_at: 2025-01-19

@@ -44,7 +44,7 @@ describe('EnumHandler', () => {
   const handler = new EnumHandler();
   const dimension = {
     type: 'enum' as const,
-    values: ['PCE', 'KKS', 'EDGE'],
+    values: ['PCE', 'BACK', 'GW'],
   };
 
   describe('validate', () => {
@@ -64,28 +64,28 @@ describe('EnumHandler', () => {
     it('select.by_pathでパスマッチを検証する', () => {
       const dimWithSelect = {
         type: 'enum' as const,
-        values: ['PCE', 'KKS'],
+        values: ['FRONT', 'BACK'],
         select: {
           by_path: [
-            { pattern: 'docs/pce/**', value: 'PCE' },
-            { pattern: 'docs/kakusill/**', value: 'KKS' },
+            { pattern: 'docs/frontend/**', value: 'FRONT' },
+            { pattern: 'docs/backend/**', value: 'BACK' },
           ],
         },
       };
 
       // パスマッチして値も一致 → OK
       const result1 = handler.validate(
-        'PCE',
+        'FRONT',
         dimWithSelect,
-        createValidationContext({ documentPath: 'docs/pce/spec.md' })
+        createValidationContext({ documentPath: 'docs/frontend/spec.md' })
       );
       expect(isRight(result1)).toBe(true);
 
       // パスマッチするが値が不一致 → エラー
       const result2 = handler.validate(
-        'KKS',
+        'BACK',
         dimWithSelect,
-        createValidationContext({ documentPath: 'docs/pce/spec.md' })
+        createValidationContext({ documentPath: 'docs/frontend/spec.md' })
       );
       expect(isLeft(result2)).toBe(true);
       if (isLeft(result2)) {
@@ -106,22 +106,22 @@ describe('EnumHandler', () => {
     it('select.by_pathでパスマッチした値を返す', () => {
       const dimWithSelect = {
         type: 'enum' as const,
-        values: ['PCE', 'KKS'],
+        values: ['FRONT', 'BACK'],
         select: {
           by_path: [
-            { pattern: 'docs/pce/**', value: 'PCE' },
-            { pattern: 'docs/kakusill/**', value: 'KKS' },
+            { pattern: 'docs/frontend/**', value: 'FRONT' },
+            { pattern: 'docs/backend/**', value: 'BACK' },
           ],
         },
       };
 
       const result = handler.generate(
         dimWithSelect,
-        createGenerationContext({ documentPath: 'docs/kakusill/memo.md' })
+        createGenerationContext({ documentPath: 'docs/backend/memo.md' })
       );
       expect(isRight(result)).toBe(true);
       if (isRight(result)) {
-        expect(result.right).toBe('KKS');
+        expect(result.right).toBe('BACK');
       }
     });
   });
@@ -129,7 +129,7 @@ describe('EnumHandler', () => {
   describe('toPattern', () => {
     it('値の選択肢パターンを生成する', () => {
       const pattern = handler.toPattern(dimension);
-      expect(pattern).toBe('(PCE|KKS|EDGE)');
+      expect(pattern).toBe('(PCE|BACK|GW)');
     });
   });
 });

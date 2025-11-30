@@ -280,4 +280,4 @@ function mod26AZ(input: string): string {
 - User Guide: `docs/user-guide.md`
 - Developer Guide: `docs/developer-guide.md`
 - ADRs: `docs/adr/`
-- Examples: `examples/simple/`, `examples/pce-kakusill-edge/`
+- Examples: `examples/simple/`, `examples/multi-component/`

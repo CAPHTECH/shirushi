@@ -24,7 +24,7 @@ import type { TemplateParseResult } from '@/parsers/template';
 
 // テスト用の固定dimension定義
 const testDimensions = {
-  COMP: { type: 'enum' as const, values: ['PCE', 'KKS'] },
+  COMP: { type: 'enum' as const, values: ['PCE', 'BACK'] },
   KIND: { type: 'enum' as const, values: ['SPEC', 'DES'] },
   YEAR4: { type: 'year' as const, digits: 4, source: 'current' as const },
   SER4: { type: 'serial' as const, digits: 4, scope: ['COMP', 'KIND', 'YEAR4'] },
@@ -47,7 +47,7 @@ function getTemplateResult(): TemplateParseResult {
 }
 
 // Arbitrary generators
-const compArb = fc.constantFrom('PCE', 'KKS');
+const compArb = fc.constantFrom('PCE', 'BACK');
 const kindArb = fc.constantFrom('SPEC', 'DES');
 const yearArb = fc.integer({ min: 2020, max: 2030 }).map(String);
 const serialArb = fc.integer({ min: 1, max: 9999 });

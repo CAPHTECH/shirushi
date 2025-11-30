@@ -25,7 +25,7 @@ function createTestConfig(
     id_format: '{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}',
     doc_globs: ['docs/**/*.md'],
     dimensions: {
-      COMP: { type: 'enum', values: ['PCE', 'KKS', 'EDGE'] },
+      COMP: { type: 'enum', values: ['PCE', 'BACK', 'GW'] },
       KIND: {
         type: 'enum_from_doc_type',
         mapping: { spec: 'SPEC', design: 'DES', memo: 'MEMO' },
@@ -71,13 +71,13 @@ describe('validateDocId', () => {
 
     it('異なる有効な値の組み合わせを検証成功する', () => {
       const config = createTestConfig();
-      // 手計算: "KKSDES20240123" のchecksum
-      // K(75)+K(75)+S(83)+D(68)+E(69)+S(83)+2(50)+0(48)+2(50)+4(52)+0(48)+1(49)+2(50)+3(51) = 851
-      // 851 mod 26 = 19 → T (65+19=84)
+      // 手計算: "BACKDES20240123" のchecksum
+      // B(66)+A(65)+C(67)+K(75)+D(68)+E(69)+S(83)+2(50)+0(48)+2(50)+4(52)+0(48)+1(49)+2(50)+3(51) = 891
+      // 891 mod 26 = 7 → H (65+7=72)
       const result = validateDocId(
         {
-          docId: 'KKS-DES-2024-0123-T',
-          documentPath: 'docs/kakusill/design.md',
+          docId: 'BACK-DES-2024-0123-H',
+          documentPath: 'docs/backend/design.md',
           documentMeta: { doc_type: 'design', created_at: '2024-06-15' },
         },
         config
@@ -201,8 +201,8 @@ describe('validateDocuments', () => {
         documentMeta: { doc_type: 'spec' },
       },
       {
-        docId: 'KKS-DES-2024-0123-T',
-        documentPath: 'docs/kakusill/design.md',
+        docId: 'BACK-DES-2024-0123-H',
+        documentPath: 'docs/backend/design.md',
         documentMeta: { doc_type: 'design' },
       },
       {
@@ -216,7 +216,7 @@ describe('validateDocuments', () => {
 
     expect(results.size).toBe(3);
     expect(results.get('docs/pce/spec1.md')?.valid).toBe(true);
-    expect(results.get('docs/kakusill/design.md')?.valid).toBe(true);
+    expect(results.get('docs/backend/design.md')?.valid).toBe(true);
     expect(results.get('docs/invalid.md')?.valid).toBe(false);
   });
 });
