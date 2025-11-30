@@ -166,10 +166,14 @@ Validate document IDs and index consistency.
 shirushi lint [options]
 
 Options:
-  --base <git-ref>    Compare against a Git revision (e.g., origin/main, HEAD~1)
-  --changed-only      Only validate files changed since base ref
-  --config <path>     Path to .shirushi.yml (default: auto-discover)
-  --format <format>   Output format: text, json (default: text)
+  -b, --base <git-ref>    Compare against a Git revision (e.g., origin/main, HEAD~1)
+                          Detects doc_id changes if forbid_id_change is true
+  --changed-only          Only validate files that have been modified
+                          With --base: files changed between base ref and HEAD
+                          Without --base: uncommitted changes (git status)
+  -c, --config <path>     Path to .shirushi.yml (default: auto-discover)
+  -f, --format <format>   Output format: table, json (default: table)
+  -q, --quiet             Quiet mode (only show file paths with errors)
 ```
 
 **Exit Codes**:
@@ -188,6 +192,8 @@ Options:
 - `DOC_ID_MISMATCH_WITH_INDEX`: Document ID doesn't match index
 - `UNINDEXED_DOC_ID`: Document has ID but not in index
 - `MISSING_FILE_FOR_INDEX`: Index references non-existent file
+- `NOT_A_GIT_REPO`: Current directory is not a Git repository (when using --base or --changed-only)
+- `INVALID_GIT_REF`: Specified Git reference does not exist (when using --base)
 
 ### `shirushi scan`
 
@@ -244,6 +250,13 @@ jobs:
 
       - name: Validate Document IDs
         run: shirushi lint --base origin/${{ github.base_ref }}
+```
+
+For faster CI on large repositories, use `--changed-only` to lint only modified files:
+
+```yaml
+      - name: Validate Changed Documents
+        run: shirushi lint --base origin/${{ github.base_ref }} --changed-only
 ```
 
 ## Dimension Types
