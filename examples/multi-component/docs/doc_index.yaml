@@ -1,5 +1,5 @@
 documents:
-  - doc_id: FRONT-SPEC-2025-0001-X
+  - doc_id: FRONT-SPEC-2025-0001-U
     path: docs/frontend/boundary.md
     title: Frontend Boundary Definition
     doc_type: spec
@@ -12,7 +12,7 @@ documents:
       - boundary
       - architecture
 
-  - doc_id: BACK-SPEC-2025-0001-Y
+  - doc_id: BACK-SPEC-2025-0001-E
     path: docs/backend/principles.yaml
     title: Backend Service Principles
     doc_type: spec

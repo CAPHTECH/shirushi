@@ -1,5 +1,5 @@
 ---
-doc_id: FRONT-SPEC-2025-0001-X
+doc_id: FRONT-SPEC-2025-0001-U
 title: Frontend Boundary Definition
 doc_type: spec
 status: active
@@ -62,4 +62,4 @@ Frontend depends on:
 
 ## Related Documents
 
-- Backend Service Principles: BACK-SPEC-2025-0001-Y
+- Backend Service Principles: BACK-SPEC-2025-0001-E

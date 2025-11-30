@@ -1,0 +1,718 @@
+{
+  "name": "ApalacheIR",
+  "version": "1.0",
+  "description": "https://apalache-mc.org/docs/adr/005adr-json.html",
+  "modules": [
+    {
+      "kind": "TlaModule",
+      "name": "counterexample",
+      "declarations": [
+        {
+          "type": "(() => Bool)",
+          "kind": "TlaOperDecl",
+          "name": "ConstInit",
+          "formalParams": [],
+          "isRecursive": false,
+          "body": {
+            "type": "Bool",
+            "kind": "OperEx",
+            "oper": "AND",
+            "args": [
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Set(Str)",
+                    "kind": "NameEx",
+                    "name": "IndexDocIDs"
+                  },
+                  {
+                    "type": "Set(Str)",
+                    "kind": "OperEx",
+                    "oper": "SET_ENUM",
+                    "args": [
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "PCE-SPEC-2025-0001-A"
+                        }
+                      },
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "PCE-SPEC-2025-0002-B"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Int",
+                    "kind": "NameEx",
+                    "name": "MaxDigits"
+                  },
+                  {
+                    "type": "Int",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaInt",
+                      "value": 4
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Str",
+                    "kind": "NameEx",
+                    "name": "NoScopeKey"
+                  },
+                  {
+                    "type": "Str",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaStr",
+                      "value": "ModelValue_NoScopeKey"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Set(Str)",
+                    "kind": "NameEx",
+                    "name": "ScopeKeys"
+                  },
+                  {
+                    "type": "Set(Str)",
+                    "kind": "OperEx",
+                    "oper": "SET_ENUM",
+                    "args": [
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "KKS-DES-2025"
+                        }
+                      },
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "PCE-SPEC-2025"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "(() => Bool)",
+          "kind": "TlaOperDecl",
+          "name": "State0",
+          "formalParams": [],
+          "isRecursive": false,
+          "body": {
+            "type": "Bool",
+            "kind": "OperEx",
+            "oper": "AND",
+            "args": [
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Set(Str)",
+                    "kind": "NameEx",
+                    "name": "IndexDocIDs"
+                  },
+                  {
+                    "type": "Set(Str)",
+                    "kind": "OperEx",
+                    "oper": "SET_ENUM",
+                    "args": [
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "PCE-SPEC-2025-0001-A"
+                        }
+                      },
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "PCE-SPEC-2025-0002-B"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Int",
+                    "kind": "NameEx",
+                    "name": "MaxDigits"
+                  },
+                  {
+                    "type": "Int",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaInt",
+                      "value": 4
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Str",
+                    "kind": "NameEx",
+                    "name": "NoScopeKey"
+                  },
+                  {
+                    "type": "Str",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaStr",
+                      "value": "ModelValue_NoScopeKey"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Set(Str)",
+                    "kind": "NameEx",
+                    "name": "ScopeKeys"
+                  },
+                  {
+                    "type": "Set(Str)",
+                    "kind": "OperEx",
+                    "oper": "SET_ENUM",
+                    "args": [
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "KKS-DES-2025"
+                        }
+                      },
+                      {
+                        "type": "Str",
+                        "kind": "ValEx",
+                        "value": {
+                          "kind": "TlaStr",
+                          "value": "PCE-SPEC-2025"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Bool",
+                    "kind": "NameEx",
+                    "name": "__AlwaysSafe_init"
+                  },
+                  {
+                    "type": "Bool",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaBool",
+                      "value": false
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Bool",
+                    "kind": "NameEx",
+                    "name": "__InLoop"
+                  },
+                  {
+                    "type": "Bool",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaBool",
+                      "value": false
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Bool",
+                    "kind": "NameEx",
+                    "name": "__saved___temporal_t_1"
+                  },
+                  {
+                    "type": "Bool",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaBool",
+                      "value": false
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "(Str -> Int)",
+                    "kind": "NameEx",
+                    "name": "__saved_generatedSerials"
+                  },
+                  {
+                    "type": "(Str -> Int)",
+                    "kind": "OperEx",
+                    "oper": "Apalache!SetAsFun",
+                    "args": [
+                      {
+                        "type": "Set(<<Str, Int>>)",
+                        "kind": "OperEx",
+                        "oper": "SET_ENUM",
+                        "args": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Bool",
+                    "kind": "NameEx",
+                    "name": "__temporal_t_1"
+                  },
+                  {
+                    "type": "Bool",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaBool",
+                      "value": false
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Bool",
+                    "kind": "NameEx",
+                    "name": "__temporal_t_1_unroll"
+                  },
+                  {
+                    "type": "Bool",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaBool",
+                      "value": true
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "Bool",
+                    "kind": "NameEx",
+                    "name": "__temporal_t_1_unroll_prev"
+                  },
+                  {
+                    "type": "Bool",
+                    "kind": "ValEx",
+                    "value": {
+                      "kind": "TlaBool",
+                      "value": true
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EQ",
+                "args": [
+                  {
+                    "type": "(Str -> Int)",
+                    "kind": "NameEx",
+                    "name": "generatedSerials"
+                  },
+                  {
+                    "type": "(Str -> Int)",
+                    "kind": "OperEx",
+                    "oper": "Apalache!SetAsFun",
+                    "args": [
+                      {
+                        "type": "Set(<<Str, Int>>)",
+                        "kind": "OperEx",
+                        "oper": "SET_ENUM",
+                        "args": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "(() => Bool)",
+          "kind": "TlaOperDecl",
+          "name": "InvariantViolation",
+          "formalParams": [],
+          "isRecursive": false,
+          "body": {
+            "type": "Bool",
+            "kind": "OperEx",
+            "oper": "Apalache!Skolem",
+            "args": [
+              {
+                "type": "Bool",
+                "kind": "OperEx",
+                "oper": "EXISTS3",
+                "args": [
+                  {
+                    "type": "Str",
+                    "kind": "NameEx",
+                    "name": "id1$10"
+                  },
+                  {
+                    "type": "Set(Str)",
+                    "kind": "NameEx",
+                    "name": "IndexDocIDs"
+                  },
+                  {
+                    "type": "Bool",
+                    "kind": "OperEx",
+                    "oper": "Apalache!Skolem",
+                    "args": [
+                      {
+                        "type": "Bool",
+                        "kind": "OperEx",
+                        "oper": "EXISTS3",
+                        "args": [
+                          {
+                            "type": "Str",
+                            "kind": "NameEx",
+                            "name": "id2$10"
+                          },
+                          {
+                            "type": "Set(Str)",
+                            "kind": "NameEx",
+                            "name": "IndexDocIDs"
+                          },
+                          {
+                            "type": "Bool",
+                            "kind": "OperEx",
+                            "oper": "AND",
+                            "args": [
+                              {
+                                "type": "Bool",
+                                "kind": "OperEx",
+                                "oper": "AND",
+                                "args": [
+                                  {
+                                    "type": "Bool",
+                                    "kind": "OperEx",
+                                    "oper": "NOT",
+                                    "args": [
+                                      {
+                                        "type": "Bool",
+                                        "kind": "OperEx",
+                                        "oper": "EQ",
+                                        "args": [
+                                          {
+                                            "type": "Str",
+                                            "kind": "NameEx",
+                                            "name": "id1$10"
+                                          },
+                                          {
+                                            "type": "Str",
+                                            "kind": "NameEx",
+                                            "name": "id2$10"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "Bool",
+                                    "kind": "OperEx",
+                                    "oper": "EQ",
+                                    "args": [
+                                      {
+                                        "type": "Str",
+                                        "kind": "OperEx",
+                                        "oper": "CHOOSE3",
+                                        "args": [
+                                          {
+                                            "type": "Str",
+                                            "kind": "NameEx",
+                                            "name": "scopeKey$93"
+                                          },
+                                          {
+                                            "type": "Set(Str)",
+                                            "kind": "OperEx",
+                                            "oper": "SET_UNION2",
+                                            "args": [
+                                              {
+                                                "type": "Set(Str)",
+                                                "kind": "NameEx",
+                                                "name": "ScopeKeys"
+                                              },
+                                              {
+                                                "type": "Set(Str)",
+                                                "kind": "OperEx",
+                                                "oper": "SET_ENUM",
+                                                "args": [
+                                                  {
+                                                    "type": "Str",
+                                                    "kind": "ValEx",
+                                                    "value": {
+                                                      "kind": "TlaStr",
+                                                      "value": "ModelValue_NoScopeKey"
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "Bool",
+                                            "kind": "ValEx",
+                                            "value": {
+                                              "kind": "TlaBool",
+                                              "value": true
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Str",
+                                        "kind": "OperEx",
+                                        "oper": "CHOOSE3",
+                                        "args": [
+                                          {
+                                            "type": "Str",
+                                            "kind": "NameEx",
+                                            "name": "scopeKey$94"
+                                          },
+                                          {
+                                            "type": "Set(Str)",
+                                            "kind": "OperEx",
+                                            "oper": "SET_UNION2",
+                                            "args": [
+                                              {
+                                                "type": "Set(Str)",
+                                                "kind": "NameEx",
+                                                "name": "ScopeKeys"
+                                              },
+                                              {
+                                                "type": "Set(Str)",
+                                                "kind": "OperEx",
+                                                "oper": "SET_ENUM",
+                                                "args": [
+                                                  {
+                                                    "type": "Str",
+                                                    "kind": "ValEx",
+                                                    "value": {
+                                                      "kind": "TlaStr",
+                                                      "value": "ModelValue_NoScopeKey"
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "Bool",
+                                            "kind": "ValEx",
+                                            "value": {
+                                              "kind": "TlaBool",
+                                              "value": true
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Bool",
+                                "kind": "OperEx",
+                                "oper": "EQ",
+                                "args": [
+                                  {
+                                    "type": "Int",
+                                    "kind": "OperEx",
+                                    "oper": "CHOOSE3",
+                                    "args": [
+                                      {
+                                        "type": "Int",
+                                        "kind": "NameEx",
+                                        "name": "n$57"
+                                      },
+                                      {
+                                        "type": "Set(Int)",
+                                        "kind": "OperEx",
+                                        "oper": "INT_RANGE",
+                                        "args": [
+                                          {
+                                            "type": "Int",
+                                            "kind": "ValEx",
+                                            "value": {
+                                              "kind": "TlaInt",
+                                              "value": 1
+                                            }
+                                          },
+                                          {
+                                            "type": "Int",
+                                            "kind": "ValEx",
+                                            "value": {
+                                              "kind": "TlaInt",
+                                              "value": 9999
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Bool",
+                                        "kind": "ValEx",
+                                        "value": {
+                                          "kind": "TlaBool",
+                                          "value": true
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "type": "Int",
+                                    "kind": "OperEx",
+                                    "oper": "CHOOSE3",
+                                    "args": [
+                                      {
+                                        "type": "Int",
+                                        "kind": "NameEx",
+                                        "name": "n$58"
+                                      },
+                                      {
+                                        "type": "Set(Int)",
+                                        "kind": "OperEx",
+                                        "oper": "INT_RANGE",
+                                        "args": [
+                                          {
+                                            "type": "Int",
+                                            "kind": "ValEx",
+                                            "value": {
+                                              "kind": "TlaInt",
+                                              "value": 1
+                                            }
+                                          },
+                                          {
+                                            "type": "Int",
+                                            "kind": "ValEx",
+                                            "value": {
+                                              "kind": "TlaInt",
+                                              "value": 9999
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Bool",
+                                        "kind": "ValEx",
+                                        "value": {
+                                          "kind": "TlaBool",
+                                          "value": true
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

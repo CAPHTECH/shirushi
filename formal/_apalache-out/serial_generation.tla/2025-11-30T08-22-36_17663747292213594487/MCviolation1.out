@@ -1,0 +1,25 @@
+@!@!@STARTMSG 2262:0 @!@!@
+Created by Apalache on Sun Nov 30 08:22:42 JST 2025
+@!@!@ENDMSG 2262 @!@!@
+@!@!@STARTMSG 2110:1 @!@!@
+Invariant is violated.
+@!@!@ENDMSG 2110 @!@!@
+@!@!@STARTMSG 2121:1 @!@!@
+The behavior up to this point is:
+@!@!@ENDMSG 2121 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+1: <Initial predicate>
+/\ IndexDocIDs = { "PCE-SPEC-2025-0001-A", "PCE-SPEC-2025-0002-B" }
+/\ MaxDigits = 4
+/\ NoScopeKey = "ModelValue_NoScopeKey"
+/\ ScopeKeys = { "KKS-DES-2025", "PCE-SPEC-2025" }
+/\ __AlwaysSafe_init = FALSE
+/\ __InLoop = FALSE
+/\ __saved___temporal_t_1 = FALSE
+/\ __saved_generatedSerials = SetAsFun({})
+/\ __temporal_t_1 = FALSE
+/\ __temporal_t_1_unroll = TRUE
+/\ __temporal_t_1_unroll_prev = TRUE
+/\ generatedSerials = SetAsFun({})
+
+@!@!@ENDMSG 2217 @!@!@
