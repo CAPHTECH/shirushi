@@ -103,13 +103,13 @@ id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}"
 dimensions:
   COMP:
     type: enum
-    values: ["PCE", "KKS", "EDGE"]
+    values: ["FRONT", "BACK", "GW"]
     select:
       by_path:
-        - pattern: "docs/pce/**"
-          value: "PCE"
-        - pattern: "docs/kakusill/**"
-          value: "KKS"
+        - pattern: "docs/frontend/**"
+          value: "FRONT"
+        - pattern: "docs/backend/**"
+          value: "BACK"
 
   KIND:
     type: enum_from_doc_type
@@ -159,15 +159,15 @@ Markdown documents use YAML front matter:
 
 ```markdown
 ---
-doc_id: PCE-SPEC-2025-0001-G
+doc_id: FRONT-SPEC-2025-0001-X
 title: Boundary Definition
 doc_type: spec
 status: active
 version: "1.0.0"
 created_at: "2025-01-15"
-owner: "team-pce"
+owner: "team/frontend"
 tags:
-  - PCE
+  - frontend
   - architecture
 ---
 
@@ -187,13 +187,13 @@ Your content here...
 YAML documents have `doc_id` at root level:
 
 ```yaml
-doc_id: KKS-SPEC-2025-0002-F
-title: Kakusill Service Principles
+doc_id: BACK-SPEC-2025-0001-Y
+title: Backend Service Principles
 doc_type: spec
 status: draft
 version: "0.3.2"
 created_at: "2025-01-16"
-owner: "team-kakusill"
+owner: "team/backend"
 
 principles:
   - principle_1: ...
@@ -258,7 +258,7 @@ shirushi scan --format yaml
 │ doc_id                     │ path                     │ title                   │ status   │
 ├────────────────────────────┼──────────────────────────┼─────────────────────────┼──────────┤
 │ PCE-SPEC-2025-0001-G       │ docs/pce/boundary.md     │ Boundary Definition     │ active   │
-│ KKS-SPEC-2025-0002-F       │ docs/kks/principles.yaml │ Service Principles      │ draft    │
+│ BACK-SPEC-2025-0002-F      │ docs/backend/principles.yaml │ Service Principles   │ draft    │
 └────────────────────────────┴──────────────────────────┴─────────────────────────┴──────────┘
 ```
 
@@ -273,7 +273,7 @@ Fixed set of allowed values.
 ```yaml
 COMP:
   type: enum
-  values: ["PCE", "KKS", "EDGE"]
+  values: ["FRONT", "BACK", "GW"]
 ```
 
 Optionally, auto-select based on file path:
@@ -281,15 +281,15 @@ Optionally, auto-select based on file path:
 ```yaml
 COMP:
   type: enum
-  values: ["PCE", "KKS", "EDGE"]
+  values: ["FRONT", "BACK", "GW"]
   select:
     by_path:
-      - pattern: "docs/pce/**"
-        value: "PCE"
-      - pattern: "docs/kakusill/**"
-        value: "KKS"
-      - pattern: "docs/edge/**"
-        value: "EDGE"
+      - pattern: "docs/frontend/**"
+        value: "FRONT"
+      - pattern: "docs/backend/**"
+        value: "BACK"
+      - pattern: "docs/gateway/**"
+        value: "GW"
 ```
 
 ### `enum_from_doc_type`
@@ -440,13 +440,30 @@ Document: PCE-SPEC-2025-0001-G
 Index:    PCE-SPEC-2025-0999-X
 ```
 
-**Fix**: Run `shirushi index sync` (v0.2) to update index.
+**Fix**: Manually update `doc_index.yaml` to match the document's `doc_id`:
+
+```yaml
+# In doc_index.yaml
+documents:
+  - doc_id: PCE-SPEC-2025-0001-G  # Update to match document
+    path: docs/pce/spec.md
+    title: Updated Title
+```
 
 #### `UNINDEXED_DOC_ID`
 
 Document has ID but isn't in index.
 
-**Fix**: Run `shirushi index sync` to add it.
+**Fix**: Add the document to `doc_index.yaml`:
+
+```yaml
+# In doc_index.yaml
+documents:
+  # ... existing entries ...
+  - doc_id: PCE-SPEC-2025-0002-H  # The doc_id from your document
+    path: docs/pce/new-spec.md    # Path to the document
+    title: New Specification       # Document title
+```
 
 ---
 
@@ -540,11 +557,11 @@ Instead of manual assignment:
 ```yaml
 COMP:
   type: enum
-  values: ["PCE", "KKS"]
+  values: ["FRONT", "BACK"]
   select:
     by_path:
-      - pattern: "docs/pce/**"
-        value: "PCE"
+      - pattern: "docs/frontend/**"
+        value: "FRONT"
 ```
 
 This auto-validates that documents are in the right directory.
@@ -557,7 +574,7 @@ Add comments to `.shirushi.yml`:
 # ID Format: COMP-KIND-YEAR-SERIAL-CHECKSUM
 # Example: PCE-SPEC-2025-0001-G
 #
-# COMP: Component (PCE, KKS, EDGE)
+# COMP: Component (FRONT, BACK, GW)
 # KIND: Document type (SPEC, DES, MEMO)
 # YEAR: Year created (4 digits)
 # SERIAL: Sequential number within scope (4 digits)
@@ -633,7 +650,35 @@ id_format: "{COMP}-{UNKNOWN}-{YEAR}"
 
 **Problem**: Index file doesn't match documents.
 
-**Solution**: Wait for v0.2 `shirushi index sync` command, or manually update index.
+**Solution**: Manually update `doc_index.yaml` following these steps:
+
+1. **Run scan** to list all documents:
+   ```bash
+   shirushi scan
+   ```
+
+2. **Compare** the output with your `doc_index.yaml`
+
+3. **Update index** to match:
+   ```yaml
+   # doc_index.yaml
+   documents:
+     - doc_id: DOC-2025-0001
+       path: docs/example.md
+       title: Example Document
+   ```
+
+4. **Validate** with lint:
+   ```bash
+   shirushi lint
+   ```
+
+**Tip**: Create a script to automate this process:
+```bash
+#!/bin/bash
+# sync-index.sh
+shirushi scan --json | jq -r '.documents' > docs/doc_index.yaml
+```
 
 ---
 

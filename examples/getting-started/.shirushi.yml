@@ -1,0 +1,38 @@
+# Shirushi Configuration - Getting Started Example
+#
+# This is a minimal configuration to help you understand
+# how Shirushi works. It uses a simple ID format:
+# DOC-YYYY-NNNN (e.g., DOC-2025-0001)
+
+# Pattern to find documents (Markdown files in docs/ directory)
+doc_globs:
+  - "docs/**/*.md"
+
+# Where to store the document index
+index_file: "docs/doc_index.yaml"
+
+# ID format template
+# {KIND}  - Document type (DOC for all documents)
+# {YEAR4} - 4-digit year
+# {SER4}  - 4-digit serial number (auto-incremented)
+id_format: "{KIND}-{YEAR4}-{SER4}"
+
+# Dimension definitions
+dimensions:
+  KIND:
+    type: enum
+    values: ["DOC"]
+
+  YEAR4:
+    type: year
+    digits: 4
+    source: now  # Use current year
+
+  SER4:
+    type: serial
+    digits: 4
+    scope: ["KIND", "YEAR4"]  # Unique within same kind and year
+
+# Settings
+forbid_id_change: true           # Prevent accidental ID changes
+allow_missing_id_in_new_files: true  # Allow new files without ID initially

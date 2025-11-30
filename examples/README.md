@@ -14,26 +14,26 @@ This directory contains example configurations demonstrating different use cases
 - Single document type
 - Good starting point for new projects
 
-### 2. [pce-kakusill-edge/](pce-kakusill-edge/)
+### 2. [multi-component/](multi-component/)
 
-**Use Case**: Multi-component project (from specification)
+**Use Case**: Multi-component project
 
 **Features**:
 - Complex ID format with checksum
 - Path-based component selection
 - Multiple document types mapped from `doc_type`
 - Scoped serial numbers
-- Full example from Shirushi specification
+- Frontend/Backend/Gateway example
 
-### 3. [advanced/](advanced/)
+### 3. [getting-started/](getting-started/)
 
-**Use Case**: Demonstrating all dimension types
+**Use Case**: Beginner tutorial
 
 **Features**:
-- All dimension types: enum, enum_from_doc_type, year, serial, checksum
-- Advanced validation rules
-- Custom field requirements per document type
-- Comprehensive example of all features
+- Step-by-step walkthrough
+- Simple configuration
+- Sample documents included
+- Good for first-time users
 
 ## How to Use These Examples
 
@@ -100,8 +100,8 @@ example-name/
 | Example | Project Size | Complexity | Use When |
 |---------|--------------|------------|----------|
 | **simple** | Small | Low | Single team, single product, simple IDs |
-| **pce-kakusill-edge** | Medium-Large | Medium | Multiple components/products, need organization |
-| **advanced** | Any | High | Want to see all features, complex requirements |
+| **multi-component** | Medium-Large | Medium | Multiple components/products, need organization |
+| **getting-started** | Any | Low | First-time users, learning Shirushi |
 
 ## Common Customizations
 

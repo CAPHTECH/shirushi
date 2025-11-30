@@ -50,15 +50,15 @@ id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}"
 dimensions:
   COMP:
     type: enum
-    values: ["PCE", "KKS", "EDGE"]
+    values: ["FRONT", "BACK", "GW"]
     select:
       by_path:
-        - pattern: "docs/pce/**"
-          value: "PCE"
-        - pattern: "docs/kakusill/**"
-          value: "KKS"
-        - pattern: "docs/edge/**"
-          value: "EDGE"
+        - pattern: "docs/frontend/**"
+          value: "FRONT"
+        - pattern: "docs/backend/**"
+          value: "BACK"
+        - pattern: "docs/gateway/**"
+          value: "GW"
 
   KIND:
     type: enum_from_doc_type
@@ -96,7 +96,7 @@ allow_missing_id_in_new_files: false
 
 ```markdown
 ---
-doc_id: PCE-SPEC-2025-0001-G
+doc_id: FRONT-SPEC-2025-0001-X
 title: Boundary Definition
 doc_type: spec
 status: active
@@ -111,8 +111,8 @@ version: "1.0.0"
 **YAML documents**:
 
 ```yaml
-doc_id: KKS-SPEC-2025-0002-F
-title: Kakusill Service Principles
+doc_id: BACK-SPEC-2025-0001-Y
+title: Backend Service Principles
 doc_type: spec
 status: draft
 version: "0.3.2"
@@ -127,16 +127,16 @@ Create `docs/doc_index.yaml`:
 
 ```yaml
 documents:
-  - doc_id: PCE-SPEC-2025-0001-G
-    path: docs/pce/boundary.md
+  - doc_id: FRONT-SPEC-2025-0001-X
+    path: docs/frontend/boundary.md
     title: Boundary Definition
     doc_type: spec
     status: active
     version: "1.0.0"
 
-  - doc_id: KKS-SPEC-2025-0002-F
-    path: docs/kakusill/service_principles.yaml
-    title: Kakusill Service Principles
+  - doc_id: BACK-SPEC-2025-0001-Y
+    path: docs/backend/principles.yaml
+    title: Backend Service Principles
     doc_type: spec
     status: draft
     version: "0.3.2"
@@ -270,11 +270,11 @@ Fixed set of allowed values, optionally selected by file path.
 ```yaml
 COMP:
   type: enum
-  values: ["PCE", "KKS", "EDGE"]
+  values: ["FRONT", "BACK", "GW"]
   select:
     by_path:
-      - pattern: "docs/pce/**"
-        value: "PCE"
+      - pattern: "docs/frontend/**"
+        value: "FRONT"
 ```
 
 ### `enum_from_doc_type`
@@ -331,8 +331,8 @@ CHK1:
 See the `examples/` directory for complete configuration examples:
 
 - [`examples/simple/`](examples/simple/) - Minimal configuration
-- [`examples/pce-kakusill-edge/`](examples/pce-kakusill-edge/) - Full example from specification
-- [`examples/advanced/`](examples/advanced/) - All dimension types
+- [`examples/multi-component/`](examples/multi-component/) - Multi-component project example
+- [`examples/getting-started/`](examples/getting-started/) - Beginner tutorial
 
 ## Documentation
 

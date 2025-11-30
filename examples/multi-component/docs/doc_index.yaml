@@ -1,0 +1,26 @@
+documents:
+  - doc_id: FRONT-SPEC-2025-0001-U
+    path: docs/frontend/boundary.md
+    title: Frontend Boundary Definition
+    doc_type: spec
+    status: active
+    version: "1.0.0"
+    owner: "team/frontend"
+    created_at: "2025-01-15"
+    tags:
+      - frontend
+      - boundary
+      - architecture
+
+  - doc_id: BACK-SPEC-2025-0001-E
+    path: docs/backend/principles.yaml
+    title: Backend Service Principles
+    doc_type: spec
+    status: draft
+    version: "0.3.2"
+    owner: "team/backend"
+    created_at: "2025-01-16"
+    tags:
+      - backend
+      - principle
+      - service-design

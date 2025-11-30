@@ -65,3 +65,7 @@ debug.log
 # Lock files (keep pnpm-lock.yaml only)
 package-lock.json
 yarn.lock
+
+# Formal verification outputs
+formal/
+*/_apalache-out/

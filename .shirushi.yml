@@ -1,0 +1,56 @@
+# Shirushi Configuration for Shirushi Project (Dogfooding)
+# This is the configuration for managing document IDs in the Shirushi project itself.
+
+# Files to scan for doc_id
+# Note: Use negation patterns (!) for exclusions since fast-glob supports them
+doc_globs:
+  - "docs/**/*.md"
+  - "docs/**/*.yaml"
+  - "!docs/adr/template.md"                     # Template file, skip validation
+  - "!docs/formal/ShirushiBoundary/**"          # Auto-generated formal verification outputs
+  - "!docs/doc_index.yaml"                      # Index file itself, not a document
+
+# Index file location
+index_file: "docs/doc_index.yaml"
+
+# Field name for document ID in YAML frontmatter
+id_field: "doc_id"
+
+# ID Format: SHI-KIND-YEAR4-SER4
+# Example: SHI-SPEC-2025-0001
+id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}"
+
+# Dimension definitions
+dimensions:
+  # Component (always SHI for this project)
+  COMP:
+    type: enum
+    values: ["SHI"]
+
+  # Document kind
+  KIND:
+    type: enum
+    values:
+      - "SPEC"    # Specification
+      - "API"     # API documentation
+      - "INT"     # Internal design
+      - "GUIDE"   # Developer guide
+      - "USER"    # User guide
+      - "FORMAL"  # Formal specifications
+      - "ADR"     # Architecture Decision Records
+
+  # Year (4 digits)
+  YEAR4:
+    type: year
+    digits: 4
+    source: "created_at"
+
+  # Serial number (4 digits, scoped by KIND and YEAR)
+  SER4:
+    type: serial
+    digits: 4
+    scope: ["KIND", "YEAR4"]
+
+# Validation rules
+forbid_id_change: true                  # Prevent changing existing IDs
+allow_missing_id_in_new_files: false    # All documents must have IDs

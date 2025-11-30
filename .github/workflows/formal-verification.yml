@@ -4,12 +4,12 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'formal/**'
+      - 'docs/formal/**'
       - '.github/workflows/formal-verification.yml'
   pull_request:
     branches: [main, develop]
     paths:
-      - 'formal/**'
+      - 'docs/formal/**'
   workflow_dispatch:  # Allow manual triggers
 
 # Cancel in-progress runs when a new push is made
@@ -35,7 +35,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Cache Alloy JAR
         uses: actions/cache@v4
@@ -61,8 +60,8 @@ jobs:
       - name: Run Alloy Checks
         id: alloy-check
         run: |
-          cd formal
-          java -jar ~/.alloy/org.alloytools.alloy.dist.jar exec --command 0 --output - shirushi.als | tee ../alloy-output.txt
+          cd docs/formal
+          java -jar ~/.alloy/org.alloytools.alloy.dist.jar exec --command 0 --output - shirushi.als | tee ../../alloy-output.txt
         continue-on-error: true
 
       - name: Parse Alloy Results
@@ -82,7 +81,7 @@ jobs:
           name: alloy-results
           path: |
             alloy-output.txt
-            formal/*.xml
+            docs/formal/*.xml
           retention-days: 30
 
       - name: Check Alloy Status
@@ -140,21 +139,21 @@ jobs:
       - name: Type Check TLA+
         id: typecheck
         run: |
-          cd formal
-          apalache-mc typecheck shirushi.tla | tee ../typecheck-output.txt
+          cd docs/formal
+          apalache-mc typecheck shirushi.tla | tee ../../typecheck-output.txt
         continue-on-error: true
 
       - name: Model Check TLA+
         id: modelcheck
         if: steps.typecheck.outcome == 'success'
         run: |
-          cd formal
-          mkdir -p ../output/apalache
+          cd docs/formal
+          mkdir -p ../../output/apalache
           apalache-mc check \
             --config=apalache.cfg \
             --write-json \
-            --out-dir=../output/apalache \
-            shirushi.tla | tee ../modelcheck-output.txt
+            --out-dir=../../output/apalache \
+            shirushi.tla | tee ../../modelcheck-output.txt
         continue-on-error: true
 
       - name: Parse Apalache Results
@@ -212,6 +211,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [alloy, tla]
     if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
 
     steps:
       - name: Download Artifacts

@@ -4,7 +4,7 @@
  * id_format テンプレート文字列を解析し、正規表現パターンと
  * プレースホルダー情報を生成します。
  *
- * 例: "{COMP}-{KIND}-{YEAR4}" → /^(PCE|KKS)-(SPEC|DES)-(\d{4})$/
+ * 例: "{COMP}-{KIND}-{YEAR4}" → /^(FRONT|BACK)-(SPEC|DES)-(\d{4})$/
  *
  * LDE準拠: Either型で成功/失敗を表現
  */
@@ -71,7 +71,7 @@ interface PlaceholderMatch {
 function dimensionToPattern(dimension: Dimension): string {
   switch (dimension.type) {
     case 'enum': {
-      // enum値の選択肢をOR結合: (PCE|KKS|EDGE)
+      // enum値の選択肢をOR結合: (FRONT|BACK|GW)
       const escaped = dimension.values.map(escapeRegex);
       return `(${escaped.join('|')})`;
     }

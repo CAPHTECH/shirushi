@@ -20,7 +20,7 @@ sig Path {                   // File path (opaque, tagged for glob selection)
   category: one PathCategory
 }
 abstract sig PathCategory {}
-one sig PathCatPCE, PathCatKKS, PathCatEDGE, PathCatMisc extends PathCategory {}
+one sig PathCatPCE, PathCatBACK, PathCatEDGE, PathCatMisc extends PathCategory {}
 
 sig DocID {                  // Document ID with parsed dimension values
   dimValues: DimensionName -> lone String
@@ -42,7 +42,7 @@ one sig AlphaA, AlphaB, AlphaC, AlphaD, AlphaE, AlphaF, AlphaG, AlphaH, AlphaI, 
        AlphaK, AlphaL, AlphaM, AlphaN, AlphaO, AlphaP, AlphaQ, AlphaR, AlphaS, AlphaT,
        AlphaU, AlphaV, AlphaW, AlphaX, AlphaY, AlphaZ extends AlphabetEntry {}
 
-one sig WeightPCE, WeightKKS, WeightEDGE,
+one sig WeightPCE, WeightBACK, WeightEDGE,
        WeightSPEC, WeightDES, WeightMEMO, WeightRUN, WeightADR,
        WeightYEAR2024, WeightYEAR2025, WeightYEAR24, WeightYEAR25,
        WeightSER0001, WeightSER0002, WeightSER0003, WeightSER0004,
@@ -83,7 +83,7 @@ fact AlphabetAssignments {
 
 fact ValueWeightAssignments {
   WeightPCE.value = "PCE" and WeightPCE.weight = 0
-  WeightKKS.value = "KKS" and WeightKKS.weight = 0
+  WeightBACK.value = "BACK" and WeightBACK.weight = 0
   WeightEDGE.value = "EDGE" and WeightEDGE.weight = 0
   WeightSPEC.value = "SPEC" and WeightSPEC.weight = 0
   WeightDES.value = "DES" and WeightDES.weight = 0
@@ -211,7 +211,7 @@ enum ChecksumAlgorithm { Mod26AZ }
 abstract sig PathPattern {
   categories: some PathCategory
 }
-one sig PatternPCE, PatternKKS, PatternEDGE, PatternAny extends PathPattern {}
+one sig PatternPCE, PatternBACK, PatternEDGE, PatternAny extends PathPattern {}
 
 // ============================================================================
 // Sample Domain Constants (tie specs to concrete atoms)
@@ -225,7 +225,7 @@ one sig Year4Dim extends YearDimension {}
 one sig SerialDimDef extends SerialDimension {}
 one sig ChecksumDimDef extends ChecksumDimension {}
 
-one sig RulePCE, RuleKKS, RuleEDGE extends EnumRule {}
+one sig RulePCE, RuleBACK, RuleEDGE extends EnumRule {}
 
 one sig DocTypeSpec extends DocType {}
 
@@ -250,19 +250,19 @@ fact SamplePathAssignments {
 
 fact PathPatternAssignments {
   PatternPCE.categories = PathCatPCE
-  PatternKKS.categories = PathCatKKS
+  PatternBACK.categories = PathCatBACK
   PatternEDGE.categories = PathCatEDGE
-  PatternAny.categories = PathCatPCE + PathCatKKS + PathCatEDGE + PathCatMisc
+  PatternAny.categories = PathCatPCE + PathCatBACK + PathCatEDGE + PathCatMisc
 }
 
 fact SampleDimensionDefs {
   CompDim.name = DimCOMP
-  CompDim.values = "PCE" + "KKS" + "EDGE"
-  CompDim.rules = (0 -> RulePCE) + (1 -> RuleKKS) + (2 -> RuleEDGE)
+  CompDim.values = "PCE" + "BACK" + "EDGE"
+  CompDim.rules = (0 -> RulePCE) + (1 -> RuleBACK) + (2 -> RuleEDGE)
   RulePCE.pattern = PatternPCE
   RulePCE.value = "PCE"
-  RuleKKS.pattern = PatternKKS
-  RuleKKS.value = "KKS"
+  RuleBACK.pattern = PatternBACK
+  RuleBACK.value = "BACK"
   RuleEDGE.pattern = PatternEDGE
   RuleEDGE.value = "EDGE"
 
@@ -357,7 +357,7 @@ fact SampleUniverseIsClosed {
   SerialDimension = SerialDimDef
   ChecksumDimension = ChecksumDimDef
   DimensionName = DimCOMP + DimKIND + DimYEAR4 + DimSER4 + DimCHK1
-  EnumRule = RulePCE + RuleKKS + RuleEDGE
+  EnumRule = RulePCE + RuleBACK + RuleEDGE
   DocType = DocTypeSpec
   SystemState = SampleState
 }

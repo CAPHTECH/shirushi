@@ -151,15 +151,15 @@ dimensions:
 ```yaml
 COMP:
   type: enum
-  values: ["PCE", "KKS", "EDGE"]
+  values: ["FRONT", "BACK", "GW"]
   select:
     by_path:
-      - pattern: "docs/pce/**"
-        value: "PCE"
-      - pattern: "docs/kakusill/**"
-        value: "KKS"
-      - pattern: "docs/edge/**"
-        value: "EDGE"
+      - pattern: "docs/frontend/**"
+        value: "FRONT"
+      - pattern: "docs/backend/**"
+        value: "BACK"
+      - pattern: "docs/gateway/**"
+        value: "GW"
 ```
 
 #### 仕様
@@ -298,7 +298,7 @@ CHK1:
 
 ## 6. 設定ファイル `.shirushi.yml`
 
-### 6.1 例（PCE / Kakusill / EdgePatch を想定）
+### 6.1 例（Frontend / Backend / Gateway を想定）
 
 ```yaml
 # .shirushi.yml
@@ -317,15 +317,15 @@ id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}"
 dimensions:
   COMP:
     type: enum
-    values: ["PCE", "KKS", "EDGE"]
+    values: ["FRONT", "BACK", "GW"]
     select:
       by_path:
-        - pattern: "docs/pce/**"
-          value: "PCE"
-        - pattern: "docs/kakusill/**"
-          value: "KKS"
-        - pattern: "docs/edge/**"
-          value: "EDGE"
+        - pattern: "docs/frontend/**"
+          value: "FRONT"
+        - pattern: "docs/backend/**"
+          value: "BACK"
+        - pattern: "docs/gateway/**"
+          value: "GW"
 
   KIND:
     type: enum_from_doc_type
@@ -408,14 +408,14 @@ YAML ファイル（仕様書・原則定義・設定など）は、ルート直
 #### 7.2.1 例
 
 ```yaml
-doc_id: KKS-SPEC-2025-0002-F
-title: Kakusill サービス原則
+doc_id: BACK-SPEC-2025-0001-Y
+title: Backend サービス原則
 doc_type: spec
 status: draft
 version: "0.3.2"
-owner: caph/kakusill
+owner: team/backend
 tags:
-  - Kakusill
+  - backend
   - principle
 
 principles:
@@ -445,26 +445,26 @@ docs/doc_index.yaml
 # docs/doc_index.yaml
 
 documents:
-  - doc_id: PCE-SPEC-2025-0001-G
-    path: docs/pce/boundary.md
+  - doc_id: FRONT-SPEC-2025-0001-X
+    path: docs/frontend/boundary.md
     title: 境界の定義
     doc_type: spec
     status: active
     version: "1.0.0"
-    owner: caph/pce
+    owner: team/frontend
     tags:
-      - PCE
+      - frontend
       - boundary
 
-  - doc_id: KKS-SPEC-2025-0002-F
-    path: docs/kakusill/service_principles.yaml
-    title: Kakusill サービス原則
+  - doc_id: BACK-SPEC-2025-0001-Y
+    path: docs/backend/principles.yaml
+    title: Backend サービス原則
     doc_type: spec
     status: draft
     version: "0.3.2"
-    owner: caph/kakusill
+    owner: team/backend
     tags:
-      - Kakusill
+      - backend
       - principle
 ```
 

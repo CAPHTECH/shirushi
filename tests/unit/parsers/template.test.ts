@@ -14,7 +14,7 @@ describe('parseTemplate', () => {
   describe('正常系: 基本的なテンプレート解析', () => {
     it('単一プレースホルダーを解析できる', () => {
       const result = parseTemplate('{COMP}', {
-        COMP: { type: 'enum', values: ['PCE', 'KKS'] },
+        COMP: { type: 'enum', values: ['PCE', 'BACK'] },
       });
 
       expect(isRight(result)).toBe(true);
@@ -59,13 +59,13 @@ describe('parseTemplate', () => {
   describe('正常系: 正規表現パターン生成', () => {
     it('enumから選択肢の正規表現を生成できる', () => {
       const result = parseTemplate('{COMP}', {
-        COMP: { type: 'enum', values: ['PCE', 'KKS', 'EDGE'] },
+        COMP: { type: 'enum', values: ['PCE', 'BACK', 'GW'] },
       });
 
       expect(isRight(result)).toBe(true);
       if (isRight(result)) {
         expect(result.right.pattern.test('PCE')).toBe(true);
-        expect(result.right.pattern.test('KKS')).toBe(true);
+        expect(result.right.pattern.test('BACK')).toBe(true);
         expect(result.right.pattern.test('INVALID')).toBe(false);
       }
     });
@@ -112,7 +112,7 @@ describe('parseTemplate', () => {
 
     it('完全なID形式の正規表現を生成できる', () => {
       const result = parseTemplate('{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}', {
-        COMP: { type: 'enum', values: ['PCE', 'KKS'] },
+        COMP: { type: 'enum', values: ['PCE', 'BACK'] },
         KIND: { type: 'enum', values: ['SPEC', 'DES'] },
         YEAR4: { type: 'year', digits: 4, source: 'created_at' },
         SER4: { type: 'serial', digits: 4, scope: ['COMP', 'KIND', 'YEAR4'] },
@@ -122,7 +122,7 @@ describe('parseTemplate', () => {
       expect(isRight(result)).toBe(true);
       if (isRight(result)) {
         expect(result.right.pattern.test('PCE-SPEC-2025-0001-G')).toBe(true);
-        expect(result.right.pattern.test('KKS-DES-2024-0123-Z')).toBe(true);
+        expect(result.right.pattern.test('BACK-DES-2024-0123-Z')).toBe(true);
         expect(result.right.pattern.test('INVALID')).toBe(false);
         expect(result.right.pattern.test('PCE-SPEC-2025-0001')).toBe(false); // チェックサムなし
       }
