@@ -1,1 +1,0 @@
-../docs/formal/shirushi.tla

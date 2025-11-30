@@ -1,1 +1,0 @@
- check --config=serial_generation.cfg serial_generation.tla
