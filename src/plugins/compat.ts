@@ -38,13 +38,19 @@ export function toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry {
     (result as { owner: string }).owner = entry.owner;
   }
   if (entry.tags !== undefined) {
-    (result as { tags: readonly string[] }).tags = entry.tags;
+    // 防御的コピー: プラグイン側での配列改変を防止
+    (result as { tags: readonly string[] }).tags = [...entry.tags];
   }
+  // NOTE: IndexEntry には extra フィールドが存在しないため変換不可
+  // PluginIndexEntry.extra はプラグイン内部でのみ使用される
   return result;
 }
 
 /**
  * PluginIndexEntry (camelCase) → IndexEntry (snake_case)
+ *
+ * NOTE: PluginIndexEntry.extra は IndexEntry に対応するフィールドがないため
+ * 変換時に失われる。extra はプラグイン内部でのみ使用すること。
  */
 export function toIndexEntry(entry: PluginIndexEntry): IndexEntry {
   return {
@@ -55,6 +61,7 @@ export function toIndexEntry(entry: PluginIndexEntry): IndexEntry {
     status: entry.status,
     version: entry.version,
     owner: entry.owner,
+    // 防御的コピー: 元の配列への影響を防止
     tags: entry.tags ? [...entry.tags] : undefined,
   };
 }

@@ -194,3 +194,37 @@ Conversion utilities are provided in `src/plugins/compat.ts`:
 toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry
 toIndexEntry(entry: PluginIndexEntry): IndexEntry
 ```
+
+### Known Limitations (Phase 1)
+
+以下はPhase 1での既知の制約であり、Phase 2以降で対応を検討する:
+
+#### 1. AsyncIterable の Either 非対応
+
+`listDocuments()` と `listEntries()` は `AsyncIterable<T>` を返すが、ストリーム途中のI/Oエラーを構造化された `Either` 型で表現できない。
+
+**緩和策**: 実装側で例外をスローし、呼び出し側で `try-catch` でハンドリング。
+
+#### 2. 型ガードのランタイム検証限界
+
+`isDocumentSource()` 等の型ガードは、メソッドが存在することのみを確認し、戻り値の型（`AsyncIterable` や `Promise<Either>` であること）を検証しない。
+
+**緩和策**: プラグイン開発者向けドキュメントで正しい実装を明記。Phase 2でZodスキーマによる検証を検討。
+
+#### 3. isAvailable/isValidRef の Either 非対応
+
+`ChangeTracker.isAvailable()` と `isValidRef()` は `Promise<boolean>` を返すため、「利用不可」と「エラー発生」を区別できない。
+
+**緩和策**: Phase 2で `Promise<Either<ChangeTrackerError, boolean>>` への変更を検討。
+
+#### 4. PluginIndexEntry.extra の非永続性
+
+`PluginIndexEntry.extra` フィールドは `IndexEntry`（YAMLスキーマ）に対応するフィールドがないため、`toIndexEntry()` 変換時に失われる。
+
+**設計意図**: `extra` はプラグイン内部の一時データ用途であり、YAML永続化は意図していない。永続化が必要な場合は別途ストレージを使用すること。
+
+#### 5. ChangeTracker の DocumentSource 強制依存
+
+`detectChanges()` が `DocumentSource` を引数に取るため、Gitログのみで完結する実装でも依存が必要。
+
+**緩和策**: Phase 2でオプショナル引数化を検討。
