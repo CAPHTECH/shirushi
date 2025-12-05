@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+/**
+ * デフォルトのIDフィールド名
+ *
+ * doc_id以外のフィールド名を使用する場合は、設定ファイルのid_fieldで指定する。
+ */
+export const DEFAULT_ID_FIELD = 'doc_id' as const;
+
 const GlobSchema = z.string().min(1, 'doc_globs must contain non-empty strings');
 
 // 各dimension schemaをexport（他モジュールからの型推論用）
@@ -67,7 +74,7 @@ export const ConfigSchema = z
       .string()
       .min(1, 'id_field must not be empty')
       .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'id_field must be a valid identifier')
-      .default('doc_id'),
+      .default(DEFAULT_ID_FIELD),
     forbid_id_change: z.boolean().default(true),
     allow_missing_id_in_new_files: z.boolean().default(false),
   })

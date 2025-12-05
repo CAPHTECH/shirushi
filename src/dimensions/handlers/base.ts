@@ -74,6 +74,8 @@ export interface GenerationContext {
   indexEntries?: IndexEntry[];
   /** テンプレート解析結果（serial採番用、optional） */
   templateResult?: TemplateParseResult;
+  /** IDフィールド名（デフォルト: 'doc_id'） */
+  idField?: string;
 }
 
 /**

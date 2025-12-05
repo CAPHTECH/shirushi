@@ -96,6 +96,21 @@ function normalizePath(filePath: string): string {
 }
 
 /**
+ * IndexEntryから指定されたIDフィールドの値を安全に取得
+ *
+ * @param entry - インデックスエントリ
+ * @param idField - IDフィールド名
+ * @returns IDの値（string型でない場合はundefined）
+ */
+export function getDocIdFromEntry(
+  entry: IndexEntry,
+  idField: string
+): string | undefined {
+  const value = entry[idField];
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
  * インデックスファイルを読み込み
  *
  * @param indexPath - インデックスファイルのパス
@@ -146,7 +161,8 @@ function findDuplicatesInIndex(
   const seenDocIds = new Map<string, string>(); // id → first path
 
   for (const entry of entries) {
-    const docId = entry[idField] as string;
+    const docId = getDocIdFromEntry(entry, idField);
+    if (!docId) continue; // Zodバリデーション済みのため通常到達しない
     const existingPath = seenDocIds.get(docId);
     if (existingPath) {
       errors.push({
@@ -203,6 +219,106 @@ function checkMissingFiles(
 }
 
 /**
+ * インデックスがない場合のエラーを検出
+ * @param documents - パースされたドキュメント一覧
+ * @param idField - IDフィールド名
+ */
+function checkUnindexedDocumentsWithoutIndex(
+  documents: DocumentParseResult[],
+  idField: string
+): LintError[] {
+  const errors: LintError[] = [];
+  for (const doc of documents) {
+    if (doc.docId) {
+      errors.push({
+        path: doc.path,
+        code: ShirushiErrors.UNINDEXED_DOC_ID.code,
+        message: `Document has ${idField} '${doc.docId}' but index file does not exist`,
+        domain: ShirushiErrors.UNINDEXED_DOC_ID.domain,
+        severity: ShirushiErrors.UNINDEXED_DOC_ID.severity,
+        details: { [idField]: doc.docId },
+      });
+    }
+  }
+  return errors;
+}
+
+/**
+ * インデックスをマップに変換
+ * @param indexFile - インデックスファイル
+ * @param idField - IDフィールド名
+ */
+function buildIndexMaps(
+  indexFile: IndexFile,
+  idField: string
+): { indexByPath: Map<string, IndexEntry>; indexByDocId: Map<string, IndexEntry> } {
+  const indexByPath = new Map<string, IndexEntry>();
+  const indexByDocId = new Map<string, IndexEntry>();
+
+  for (const entry of indexFile.documents) {
+    const entryDocId = getDocIdFromEntry(entry, idField);
+    if (!entryDocId) continue; // Zodバリデーション済みのため通常到達しない
+    indexByPath.set(entry.path, entry);
+    indexByDocId.set(entryDocId, entry);
+  }
+
+  return { indexByPath, indexByDocId };
+}
+
+/**
+ * ドキュメントとインデックスの整合性エラーを検出
+ * @param documents - パースされたドキュメント一覧
+ * @param indexByPath - パスでインデックスされたエントリ
+ * @param idField - IDフィールド名
+ */
+function checkDocumentIndexConsistency(
+  documents: DocumentParseResult[],
+  indexByPath: Map<string, IndexEntry>,
+  idField: string
+): LintError[] {
+  const errors: LintError[] = [];
+
+  for (const doc of documents) {
+    if (!doc.docId) continue;
+
+    // Windows互換性のためパスを正規化して比較
+    const normalizedPath = normalizePath(doc.path);
+    const indexEntry = indexByPath.get(normalizedPath);
+
+    if (!indexEntry) {
+      errors.push({
+        path: doc.path,
+        code: ShirushiErrors.UNINDEXED_DOC_ID.code,
+        message: `Document has ${idField} '${doc.docId}' but is not in index`,
+        domain: ShirushiErrors.UNINDEXED_DOC_ID.domain,
+        severity: ShirushiErrors.UNINDEXED_DOC_ID.severity,
+        details: { [idField]: doc.docId },
+      });
+      continue;
+    }
+
+    const indexDocId = getDocIdFromEntry(indexEntry, idField);
+    if (!indexDocId) continue; // Zodバリデーション済みのため通常到達しない
+
+    if (indexDocId !== doc.docId) {
+      errors.push({
+        path: doc.path,
+        code: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.code,
+        message: `Document ${idField} '${doc.docId}' differs from index entry '${indexDocId}'`,
+        domain: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.domain,
+        severity: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.severity,
+        details: {
+          [`document_${idField}`]: doc.docId,
+          [`index_${idField}`]: indexDocId,
+        },
+      });
+    }
+  }
+
+  return errors;
+}
+
+/**
  * ドキュメントとインデックスの整合性を検証
  *
  * @param documents - パースされたドキュメント一覧
@@ -217,84 +333,24 @@ export function validateIndexConsistency(
   cwd: string = process.cwd(),
   idField: string = 'doc_id'
 ): IndexValidationResult {
-  const errors: LintError[] = [];
-
-  // インデックスがない場合は空のマップを返す
+  // インデックスがない場合
   if (!indexFile) {
-    // doc_idを持つドキュメントがあればUNINDEXED_DOC_IDエラー
-    for (const doc of documents) {
-      if (doc.docId) {
-        errors.push({
-          path: doc.path,
-          code: ShirushiErrors.UNINDEXED_DOC_ID.code,
-          message: `Document has ${idField} '${doc.docId}' but index file does not exist`,
-          domain: ShirushiErrors.UNINDEXED_DOC_ID.domain,
-          severity: ShirushiErrors.UNINDEXED_DOC_ID.severity,
-          details: { [idField]: doc.docId },
-        });
-      }
-    }
-
     return {
-      errors,
+      errors: checkUnindexedDocumentsWithoutIndex(documents, idField),
       indexEntries: new Map(),
       indexByDocId: new Map(),
     };
   }
 
   // インデックスをマップに変換
-  const indexByPath = new Map<string, IndexEntry>();
-  const indexByDocId = new Map<string, IndexEntry>();
+  const { indexByPath, indexByDocId } = buildIndexMaps(indexFile, idField);
 
-  for (const entry of indexFile.documents) {
-    const entryDocId = entry[idField] as string;
-    indexByPath.set(entry.path, entry);
-    indexByDocId.set(entryDocId, entry);
-  }
-
-  // 1. インデックス内の重複検出
-  errors.push(...findDuplicatesInIndex(indexFile.documents, idField));
-
-  // 2. インデックスエントリのファイル存在確認
-  errors.push(...checkMissingFiles(indexFile.documents, cwd, idField));
-
-  // 3. ドキュメントとインデックスの整合性
-  for (const doc of documents) {
-    if (!doc.docId) continue;
-
-    // Windows互換性のためパスを正規化して比較
-    const normalizedPath = normalizePath(doc.path);
-    const indexEntry = indexByPath.get(normalizedPath);
-
-    if (!indexEntry) {
-      // ドキュメントにdoc_idがあるがインデックスに未登録
-      errors.push({
-        path: doc.path,
-        code: ShirushiErrors.UNINDEXED_DOC_ID.code,
-        message: `Document has ${idField} '${doc.docId}' but is not in index`,
-        domain: ShirushiErrors.UNINDEXED_DOC_ID.domain,
-        severity: ShirushiErrors.UNINDEXED_DOC_ID.severity,
-        details: { [idField]: doc.docId },
-      });
-    } else {
-      const indexDocId = indexEntry[idField] as string;
-      if (indexDocId !== doc.docId) {
-        // ドキュメントのdoc_idとインデックスの値が不一致
-        // doc側が真（ADR-0003）なのでインデックス側が不整合
-        errors.push({
-          path: doc.path,
-          code: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.code,
-          message: `Document ${idField} '${doc.docId}' differs from index entry '${indexDocId}'`,
-          domain: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.domain,
-          severity: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.severity,
-          details: {
-            [`document_${idField}`]: doc.docId,
-            [`index_${idField}`]: indexDocId,
-          },
-        });
-      }
-    }
-  }
+  // 各種検証を実行
+  const errors: LintError[] = [
+    ...findDuplicatesInIndex(indexFile.documents, idField),
+    ...checkMissingFiles(indexFile.documents, cwd, idField),
+    ...checkDocumentIndexConsistency(documents, indexByPath, idField),
+  ];
 
   return {
     errors,

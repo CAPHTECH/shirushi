@@ -17,14 +17,20 @@ import type { DocIdChange, ChangeDetectionResult } from '@/git/types';
 /**
  * IndexEntry (snake_case) → PluginIndexEntry (camelCase)
  *
- * @throws Error if entry.doc_id is undefined
+ * @param entry - IndexEntry to convert
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
+ * @throws Error if ID field is undefined
  */
-export function toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry {
-  if (!entry.doc_id) {
-    throw new Error(`IndexEntry missing doc_id: ${entry.path}`);
+export function toPluginIndexEntry(
+  entry: IndexEntry,
+  idField: string = 'doc_id'
+): PluginIndexEntry {
+  const docId = entry[idField];
+  if (typeof docId !== 'string') {
+    throw new Error(`IndexEntry missing ${idField}: ${entry.path}`);
   }
   const result: PluginIndexEntry = {
-    docId: entry.doc_id,
+    docId,
     path: entry.path,
   };
   if (entry.title !== undefined) {
@@ -54,12 +60,18 @@ export function toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry {
 /**
  * PluginIndexEntry (camelCase) → IndexEntry (snake_case)
  *
+ * @param entry - PluginIndexEntry to convert
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
+ *
  * NOTE: PluginIndexEntry.extra は IndexEntry に対応するフィールドがないため
  * 変換時に失われる。extra はプラグイン内部でのみ使用すること。
  */
-export function toIndexEntry(entry: PluginIndexEntry): IndexEntry {
+export function toIndexEntry(
+  entry: PluginIndexEntry,
+  idField: string = 'doc_id'
+): IndexEntry {
   const result: IndexEntry = {
-    doc_id: entry.docId,
+    [idField]: entry.docId,
     path: entry.path,
   };
   if (entry.title !== undefined) {

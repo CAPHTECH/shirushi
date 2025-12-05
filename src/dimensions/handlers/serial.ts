@@ -72,6 +72,7 @@ function buildScopeKey(
  * @param scope - スコープを構成するdimension名の配列
  * @param targetScopeKey - 対象のスコープキー
  * @param serialDimensionName - シリアルdimensionの名前
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
  * @returns スコープ内のシリアル番号の配列
  */
 function extractSerialsFromIndex(
@@ -79,14 +80,15 @@ function extractSerialsFromIndex(
   templateResult: TemplateParseResult,
   scope: string[],
   targetScopeKey: string,
-  serialDimensionName: string
+  serialDimensionName: string,
+  idField: string = 'doc_id'
 ): number[] {
   const serials: number[] = [];
 
   for (const entry of indexEntries) {
-    // doc_id をテンプレートでパース
-    const docId = entry.doc_id;
-    if (!docId) continue;
+    // IDフィールドをテンプレートでパース
+    const docId = entry[idField];
+    if (typeof docId !== 'string') continue;
     const values = extractDimensionValues(docId, templateResult);
     if (!values) continue;
 
@@ -199,12 +201,14 @@ export class SerialHandler implements DimensionHandler<SerialDimension> {
     }
 
     // 3. スコープ内の既存シリアル番号を抽出
+    const idField = context.idField ?? 'doc_id';
     const existingSerials = extractSerialsFromIndex(
       context.indexEntries,
       context.templateResult,
       dimension.scope,
       scopeKey,
-      context.dimensionName
+      context.dimensionName,
+      idField
     );
 
     // 4. 次のシリアルを計算 (max + 1)
