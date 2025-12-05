@@ -85,7 +85,9 @@ function extractSerialsFromIndex(
 
   for (const entry of indexEntries) {
     // doc_id をテンプレートでパース
-    const values = extractDimensionValues(entry.doc_id, templateResult);
+    const docId = entry.doc_id;
+    if (!docId) continue;
+    const values = extractDimensionValues(docId, templateResult);
     if (!values) continue;
 
     // スコープキーを構築して比較

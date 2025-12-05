@@ -13,17 +13,24 @@ type ErrorDefinition = (typeof ShirushiErrors)[keyof typeof ShirushiErrors];
 
 const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
 
-export async function parseYamlFile(path: string): Promise<DocumentParseResult> {
+export async function parseYamlFile(
+  path: string,
+  idField: string = 'doc_id'
+): Promise<DocumentParseResult> {
   const file = await readFile(path, 'utf8');
-  return parseYamlContent(path, file);
+  return parseYamlContent(path, file, idField);
 }
 
-export function parseYamlContent(path: string, content: string): DocumentParseResult {
+export function parseYamlContent(
+  path: string,
+  content: string,
+  idField: string = 'doc_id'
+): DocumentParseResult {
   const problems: DocumentProblem[] = [];
   let docId: string | undefined;
   let metadata: Record<string, unknown> = {};
 
-  const docIdOccurrences = countDocIdDirectives(content);
+  const docIdOccurrences = countDocIdDirectives(content, idField);
   if (docIdOccurrences > 1) {
     pushProblem(problems, ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT, { path });
   }
@@ -32,7 +39,7 @@ export function parseYamlContent(path: string, content: string): DocumentParseRe
     assertYamlSafety(content, path);
     const parsed = yaml.load(content, YAML_OPTIONS);
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      const { doc_id: candidate, ...rest } = parsed as Record<string, unknown>;
+      const { [idField]: candidate, ...rest } = parsed as Record<string, unknown>;
       metadata = rest;
       if (typeof candidate === 'string') {
         docId = candidate;

@@ -63,6 +63,11 @@ export const ConfigSchema = z
       'dimensions must contain at least one definition'
     ),
     index_file: z.string().default('docs/doc_index.yaml'),
+    id_field: z
+      .string()
+      .min(1, 'id_field must not be empty')
+      .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, 'id_field must be a valid identifier')
+      .default('doc_id'),
     forbid_id_change: z.boolean().default(true),
     allow_missing_id_in_new_files: z.boolean().default(false),
   })

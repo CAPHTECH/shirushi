@@ -190,14 +190,16 @@ function collectDocumentIssues(
 async function validateIndex(
   scanResult: ScanResult,
   indexFilePath: string,
-  cwd: string
+  cwd: string,
+  idField: string = 'doc_id'
 ): Promise<LintError[]> {
   try {
-    const indexFile = await loadIndexFile(indexFilePath, cwd);
+    const indexFile = await loadIndexFile(indexFilePath, cwd, idField);
     const indexResult = validateIndexConsistency(
       scanResult.documents,
       indexFile,
-      cwd
+      cwd,
+      idField
     );
     return indexResult.errors;
   } catch (error) {
@@ -323,13 +325,14 @@ export async function executeLint(options: LintOptions): Promise<number> {
   const documentIssues = collectDocumentIssues(scanResult, config);
 
   // 6. インデックス整合性を検証
-  const indexIssues = await validateIndex(scanResult, config.index_file, cwd);
+  const idField = config.id_field ?? 'doc_id';
+  const indexIssues = await validateIndex(scanResult, config.index_file, cwd, idField);
 
   // 7. Git差分でdoc_id変更を検出（--base 指定時 かつ forbid_id_change が true）
   let gitIssues: LintError[] = [];
   if (options.base && config.forbid_id_change) {
     const gitOps = createGitOperations({ cwd });
-    const detector = createChangeDetector(gitOps);
+    const detector = createChangeDetector(gitOps, idField);
 
     // リネーム情報を含む検出対象を構築
     // changedFilesからリネーム情報を取得し、スキャンされたドキュメントと紐付ける

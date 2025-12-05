@@ -16,8 +16,13 @@ import type { DocIdChange, ChangeDetectionResult } from '@/git/types';
 
 /**
  * IndexEntry (snake_case) → PluginIndexEntry (camelCase)
+ *
+ * @throws Error if entry.doc_id is undefined
  */
 export function toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry {
+  if (!entry.doc_id) {
+    throw new Error(`IndexEntry missing doc_id: ${entry.path}`);
+  }
   const result: PluginIndexEntry = {
     docId: entry.doc_id,
     path: entry.path,
@@ -53,17 +58,30 @@ export function toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry {
  * 変換時に失われる。extra はプラグイン内部でのみ使用すること。
  */
 export function toIndexEntry(entry: PluginIndexEntry): IndexEntry {
-  return {
+  const result: IndexEntry = {
     doc_id: entry.docId,
     path: entry.path,
-    title: entry.title,
-    doc_type: entry.docType,
-    status: entry.status,
-    version: entry.version,
-    owner: entry.owner,
-    // 防御的コピー: 元の配列への影響を防止
-    tags: entry.tags ? [...entry.tags] : undefined,
   };
+  if (entry.title !== undefined) {
+    result.title = entry.title;
+  }
+  if (entry.docType !== undefined) {
+    result.doc_type = entry.docType;
+  }
+  if (entry.status !== undefined) {
+    result.status = entry.status;
+  }
+  if (entry.version !== undefined) {
+    result.version = entry.version;
+  }
+  if (entry.owner !== undefined) {
+    result.owner = entry.owner;
+  }
+  if (entry.tags !== undefined) {
+    // 防御的コピー: 元の配列への影響を防止
+    result.tags = [...entry.tags];
+  }
+  return result;
 }
 
 /**

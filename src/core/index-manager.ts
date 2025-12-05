@@ -25,35 +25,56 @@ import type { LintError } from '@/cli/output/reporters';
 import type { DocumentParseResult } from '@/types/document';
 
 /**
- * インデックスエントリのZodスキーマ
+ * インデックスエントリのZodスキーマを動的に生成
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
  */
-const IndexEntrySchema = z.object({
-  doc_id: z.string().min(1),
-  path: z.string().min(1),
-  title: z.string().optional(),
-  doc_type: z.string().optional(),
-  status: z.string().optional(),
-  version: z.string().optional(),
-  owner: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-});
+export function createIndexEntrySchema(idField: string = 'doc_id') {
+  return z.object({
+    [idField]: z.string().min(1),
+    path: z.string().min(1),
+    title: z.string().optional(),
+    doc_type: z.string().optional(),
+    status: z.string().optional(),
+    version: z.string().optional(),
+    owner: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+  });
+}
 
 /**
- * インデックスファイルのZodスキーマ
+ * インデックスファイルのZodスキーマを動的に生成
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
  */
-const IndexFileSchema = z.object({
-  documents: z.array(IndexEntrySchema),
-});
+export function createIndexFileSchema(idField: string = 'doc_id') {
+  return z.object({
+    documents: z.array(createIndexEntrySchema(idField)),
+  });
+}
 
 /**
- * インデックスエントリ
+ * インデックスエントリ（動的idFieldに対応）
+ *
+ * doc_idは後方互換性のためオプショナルプロパティとして維持。
+ * カスタムidFieldを使う場合は[idField]でアクセス。
  */
-export type IndexEntry = z.infer<typeof IndexEntrySchema>;
+export interface IndexEntry {
+  doc_id?: string; // 後方互換性のため（デフォルトのidField）
+  path: string;
+  title?: string;
+  doc_type?: string;
+  status?: string;
+  version?: string;
+  owner?: string;
+  tags?: string[];
+  [key: string]: string | string[] | undefined; // 動的なidフィールドやカスタムフィールド
+}
 
 /**
  * インデックスファイル構造
  */
-export type IndexFile = z.infer<typeof IndexFileSchema>;
+export interface IndexFile {
+  documents: IndexEntry[];
+}
 
 /**
  * 整合性検証結果
@@ -79,12 +100,14 @@ function normalizePath(filePath: string): string {
  *
  * @param indexPath - インデックスファイルのパス
  * @param cwd - ベースディレクトリ
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
  * @returns インデックスファイル内容、またはnull（ファイルが存在しない場合）
  * @throws Error - YAMLパースエラーまたはスキーマ検証エラー
  */
 export async function loadIndexFile(
   indexPath: string,
-  cwd: string = process.cwd()
+  cwd: string = process.cwd(),
+  idField: string = 'doc_id'
 ): Promise<IndexFile | null> {
   const absolutePath = path.isAbsolute(indexPath)
     ? indexPath
@@ -97,8 +120,9 @@ export async function loadIndexFile(
   const content = await readFile(absolutePath, 'utf8');
   const parsed = yaml.load(content, YAML_OPTIONS);
 
-  // Zodによる構造検証
-  const result = IndexFileSchema.safeParse(parsed);
+  // 動的スキーマによる構造検証
+  const schema = createIndexFileSchema(idField);
+  const result = schema.safeParse(parsed);
   if (!result.success) {
     const issues = result.error.issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
@@ -106,33 +130,39 @@ export async function loadIndexFile(
     throw new Error(`Invalid index file structure: ${issues}`);
   }
 
-  return result.data;
+  return result.data as IndexFile;
 }
 
 /**
  * インデックス内の重複を検出
+ * @param entries - インデックスエントリ
+ * @param idField - IDフィールド名
  */
-function findDuplicatesInIndex(entries: IndexEntry[]): LintError[] {
+function findDuplicatesInIndex(
+  entries: IndexEntry[],
+  idField: string = 'doc_id'
+): LintError[] {
   const errors: LintError[] = [];
-  const seenDocIds = new Map<string, string>(); // doc_id → first path
+  const seenDocIds = new Map<string, string>(); // id → first path
 
   for (const entry of entries) {
-    const existingPath = seenDocIds.get(entry.doc_id);
+    const docId = entry[idField] as string;
+    const existingPath = seenDocIds.get(docId);
     if (existingPath) {
       errors.push({
         path: entry.path,
         code: ShirushiErrors.DUPLICATE_DOC_ID_IN_INDEX.code,
-        message: `Duplicate doc_id '${entry.doc_id}' (also in ${existingPath})`,
+        message: `Duplicate ${idField} '${docId}' (also in ${existingPath})`,
         domain: ShirushiErrors.DUPLICATE_DOC_ID_IN_INDEX.domain,
         severity: ShirushiErrors.DUPLICATE_DOC_ID_IN_INDEX.severity,
         details: {
-          doc_id: entry.doc_id,
+          [idField]: docId,
           first_path: existingPath,
           duplicate_path: entry.path,
         },
       });
     } else {
-      seenDocIds.set(entry.doc_id, entry.path);
+      seenDocIds.set(docId, entry.path);
     }
   }
 
@@ -141,10 +171,14 @@ function findDuplicatesInIndex(entries: IndexEntry[]): LintError[] {
 
 /**
  * インデックスエントリのファイル存在確認
+ * @param entries - インデックスエントリ
+ * @param cwd - ベースディレクトリ
+ * @param idField - IDフィールド名
  */
 function checkMissingFiles(
   entries: IndexEntry[],
-  cwd: string
+  cwd: string,
+  idField: string = 'doc_id'
 ): LintError[] {
   const errors: LintError[] = [];
 
@@ -158,7 +192,7 @@ function checkMissingFiles(
         domain: ShirushiErrors.MISSING_FILE_FOR_INDEX.domain,
         severity: ShirushiErrors.MISSING_FILE_FOR_INDEX.severity,
         details: {
-          doc_id: entry.doc_id,
+          [idField]: entry[idField],
           expected_path: entry.path,
         },
       });
@@ -174,12 +208,14 @@ function checkMissingFiles(
  * @param documents - パースされたドキュメント一覧
  * @param indexFile - インデックスファイル内容
  * @param cwd - ベースディレクトリ
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
  * @returns 検証結果
  */
 export function validateIndexConsistency(
   documents: DocumentParseResult[],
   indexFile: IndexFile | null,
-  cwd: string = process.cwd()
+  cwd: string = process.cwd(),
+  idField: string = 'doc_id'
 ): IndexValidationResult {
   const errors: LintError[] = [];
 
@@ -191,10 +227,10 @@ export function validateIndexConsistency(
         errors.push({
           path: doc.path,
           code: ShirushiErrors.UNINDEXED_DOC_ID.code,
-          message: `Document has doc_id '${doc.docId}' but index file does not exist`,
+          message: `Document has ${idField} '${doc.docId}' but index file does not exist`,
           domain: ShirushiErrors.UNINDEXED_DOC_ID.domain,
           severity: ShirushiErrors.UNINDEXED_DOC_ID.severity,
-          details: { doc_id: doc.docId },
+          details: { [idField]: doc.docId },
         });
       }
     }
@@ -211,15 +247,16 @@ export function validateIndexConsistency(
   const indexByDocId = new Map<string, IndexEntry>();
 
   for (const entry of indexFile.documents) {
+    const entryDocId = entry[idField] as string;
     indexByPath.set(entry.path, entry);
-    indexByDocId.set(entry.doc_id, entry);
+    indexByDocId.set(entryDocId, entry);
   }
 
   // 1. インデックス内の重複検出
-  errors.push(...findDuplicatesInIndex(indexFile.documents));
+  errors.push(...findDuplicatesInIndex(indexFile.documents, idField));
 
   // 2. インデックスエントリのファイル存在確認
-  errors.push(...checkMissingFiles(indexFile.documents, cwd));
+  errors.push(...checkMissingFiles(indexFile.documents, cwd, idField));
 
   // 3. ドキュメントとインデックスの整合性
   for (const doc of documents) {
@@ -234,25 +271,28 @@ export function validateIndexConsistency(
       errors.push({
         path: doc.path,
         code: ShirushiErrors.UNINDEXED_DOC_ID.code,
-        message: `Document has doc_id '${doc.docId}' but is not in index`,
+        message: `Document has ${idField} '${doc.docId}' but is not in index`,
         domain: ShirushiErrors.UNINDEXED_DOC_ID.domain,
         severity: ShirushiErrors.UNINDEXED_DOC_ID.severity,
-        details: { doc_id: doc.docId },
+        details: { [idField]: doc.docId },
       });
-    } else if (indexEntry.doc_id !== doc.docId) {
-      // ドキュメントのdoc_idとインデックスの値が不一致
-      // doc側が真（ADR-0003）なのでインデックス側が不整合
-      errors.push({
-        path: doc.path,
-        code: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.code,
-        message: `Document doc_id '${doc.docId}' differs from index entry '${indexEntry.doc_id}'`,
-        domain: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.domain,
-        severity: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.severity,
-        details: {
-          document_doc_id: doc.docId,
-          index_doc_id: indexEntry.doc_id,
-        },
-      });
+    } else {
+      const indexDocId = indexEntry[idField] as string;
+      if (indexDocId !== doc.docId) {
+        // ドキュメントのdoc_idとインデックスの値が不一致
+        // doc側が真（ADR-0003）なのでインデックス側が不整合
+        errors.push({
+          path: doc.path,
+          code: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.code,
+          message: `Document ${idField} '${doc.docId}' differs from index entry '${indexDocId}'`,
+          domain: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.domain,
+          severity: ShirushiErrors.DOC_ID_MISMATCH_WITH_INDEX.severity,
+          details: {
+            [`document_${idField}`]: doc.docId,
+            [`index_${idField}`]: indexDocId,
+          },
+        });
+      }
     }
   }
 
