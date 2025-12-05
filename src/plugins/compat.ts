@@ -16,10 +16,21 @@ import type { DocIdChange, ChangeDetectionResult } from '@/git/types';
 
 /**
  * IndexEntry (snake_case) → PluginIndexEntry (camelCase)
+ *
+ * @param entry - IndexEntry to convert
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
+ * @throws Error if ID field is undefined
  */
-export function toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry {
+export function toPluginIndexEntry(
+  entry: IndexEntry,
+  idField: string = 'doc_id'
+): PluginIndexEntry {
+  const docId = entry[idField];
+  if (typeof docId !== 'string') {
+    throw new Error(`IndexEntry missing ${idField}: ${entry.path}`);
+  }
   const result: PluginIndexEntry = {
-    docId: entry.doc_id,
+    docId,
     path: entry.path,
   };
   if (entry.title !== undefined) {
@@ -49,21 +60,40 @@ export function toPluginIndexEntry(entry: IndexEntry): PluginIndexEntry {
 /**
  * PluginIndexEntry (camelCase) → IndexEntry (snake_case)
  *
+ * @param entry - PluginIndexEntry to convert
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
+ *
  * NOTE: PluginIndexEntry.extra は IndexEntry に対応するフィールドがないため
  * 変換時に失われる。extra はプラグイン内部でのみ使用すること。
  */
-export function toIndexEntry(entry: PluginIndexEntry): IndexEntry {
-  return {
-    doc_id: entry.docId,
+export function toIndexEntry(
+  entry: PluginIndexEntry,
+  idField: string = 'doc_id'
+): IndexEntry {
+  const result: IndexEntry = {
+    [idField]: entry.docId,
     path: entry.path,
-    title: entry.title,
-    doc_type: entry.docType,
-    status: entry.status,
-    version: entry.version,
-    owner: entry.owner,
-    // 防御的コピー: 元の配列への影響を防止
-    tags: entry.tags ? [...entry.tags] : undefined,
   };
+  if (entry.title !== undefined) {
+    result.title = entry.title;
+  }
+  if (entry.docType !== undefined) {
+    result.doc_type = entry.docType;
+  }
+  if (entry.status !== undefined) {
+    result.status = entry.status;
+  }
+  if (entry.version !== undefined) {
+    result.version = entry.version;
+  }
+  if (entry.owner !== undefined) {
+    result.owner = entry.owner;
+  }
+  if (entry.tags !== undefined) {
+    // 防御的コピー: 元の配列への影響を防止
+    result.tags = [...entry.tags];
+  }
+  return result;
 }
 
 /**

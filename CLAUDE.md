@@ -130,6 +130,16 @@ Configuration (`.shirushi.yml`) is validated using **Zod schemas** which provide
 
 The config schema uses discriminated unions matching the dimension types.
 
+### Configurable ID Field Name
+
+The field name for document IDs is configurable via `id_field` (default: `"doc_id"`):
+
+```yaml
+id_field: "document_id"  # Use "document_id" instead of "doc_id"
+```
+
+Both documents and index file use the same configured field name.
+
 ### ID Validation Flow
 
 1. Parse `id_format` template to extract placeholders

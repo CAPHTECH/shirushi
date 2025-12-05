@@ -69,10 +69,14 @@ function getDocumentKind(filePath: string): 'markdown' | 'yaml' | null {
 
 /**
  * 単一ファイルをパース
+ * @param filePath - ファイルパス
+ * @param cwd - ベースディレクトリ
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
  */
 async function parseDocument(
   filePath: string,
-  cwd: string
+  cwd: string,
+  idField: string = 'doc_id'
 ): Promise<DocumentParseResult | null> {
   const kind = getDocumentKind(filePath);
   if (!kind) return null;
@@ -83,11 +87,11 @@ async function parseDocument(
   const relativePath = path.relative(cwd, absolutePath);
 
   if (kind === 'markdown') {
-    const result = await parseMarkdownFile(absolutePath);
+    const result = await parseMarkdownFile(absolutePath, idField);
     // 相対パスに正規化
     return { ...result, path: relativePath };
   } else {
-    const result = await parseYamlFile(absolutePath);
+    const result = await parseYamlFile(absolutePath, idField);
     return { ...result, path: relativePath };
   }
 }
@@ -115,6 +119,7 @@ export async function scanDocuments(
   options: ScanOptions = {}
 ): Promise<ScanResult> {
   const cwd = options.cwd ?? process.cwd();
+  const idField = config.id_field ?? 'doc_id';
 
   // fast-globで対象ファイルを探索
   const files = await fg(config.doc_globs, {
@@ -131,7 +136,7 @@ export async function scanDocuments(
     : files;
 
   // 各ファイルを並列でパース
-  const parsePromises = targetFiles.map((file) => parseDocument(file, cwd));
+  const parsePromises = targetFiles.map((file) => parseDocument(file, cwd, idField));
   const results = await Promise.all(parsePromises);
 
   // nullを除外（サポート外拡張子）
@@ -189,10 +194,11 @@ function calculateSummary(documents: DocumentParseResult[]): ScanSummary {
  */
 export async function scanSpecificPaths(
   paths: string[],
-  _config: ShirushiConfig,
+  config: ShirushiConfig,
   cwd: string = process.cwd()
 ): Promise<ScanResult> {
-  const parsePromises = paths.map((file) => parseDocument(file, cwd));
+  const idField = config.id_field ?? 'doc_id';
+  const parsePromises = paths.map((file) => parseDocument(file, cwd, idField));
   const results = await Promise.all(parsePromises);
 
   const documents = results.filter(

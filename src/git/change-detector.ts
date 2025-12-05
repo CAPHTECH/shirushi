@@ -42,7 +42,10 @@ interface SingleFileChange {
  * 依存性注入により、テスト時にモック実装を注入可能。
  */
 export class ChangeDetector {
-  constructor(private gitOps: GitOperations) {}
+  constructor(
+    private gitOps: GitOperations,
+    private idField: string = 'doc_id'
+  ) {}
 
   /**
    * 指定されたファイル群のdoc_id変更を検出
@@ -120,10 +123,10 @@ export class ChangeDetector {
 
     // doc_idを抽出（拡張子判定用にそれぞれのパスを使用）
     const baseDocId = baseContent
-      ? this.extractDocId(baseContent, basePathToUse)
+      ? this.extractDocId(baseContent, basePathToUse, this.idField)
       : null;
     const currentDocId = currentContent
-      ? this.extractDocId(currentContent, filePath)
+      ? this.extractDocId(currentContent, filePath, this.idField)
       : null;
 
     return right({
@@ -143,18 +146,23 @@ export class ChangeDetector {
    *
    * @param content - ファイル内容
    * @param filePath - ファイルパス（拡張子判定用）
+   * @param idField - IDフィールド名（デフォルト: 'doc_id'）
    * @returns doc_id（存在しない場合はnull）
    */
-  private extractDocId(content: string, filePath: string): string | null {
+  private extractDocId(
+    content: string,
+    filePath: string,
+    idField: string = 'doc_id'
+  ): string | null {
     const ext = filePath.toLowerCase();
 
     if (ext.endsWith('.md')) {
-      const result = parseMarkdownContent(filePath, content);
+      const result = parseMarkdownContent(filePath, content, idField);
       return result.docId ?? null;
     }
 
     if (ext.endsWith('.yaml') || ext.endsWith('.yml')) {
-      const result = parseYamlContent(filePath, content);
+      const result = parseYamlContent(filePath, content, idField);
       return result.docId ?? null;
     }
 
@@ -167,8 +175,12 @@ export class ChangeDetector {
  * ChangeDetectorファクトリ関数
  *
  * @param gitOps - GitOperations実装
+ * @param idField - IDフィールド名（デフォルト: 'doc_id'）
  * @returns ChangeDetector
  */
-export function createChangeDetector(gitOps: GitOperations): ChangeDetector {
-  return new ChangeDetector(gitOps);
+export function createChangeDetector(
+  gitOps: GitOperations,
+  idField: string = 'doc_id'
+): ChangeDetector {
+  return new ChangeDetector(gitOps, idField);
 }

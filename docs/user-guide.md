@@ -144,10 +144,36 @@ allow_missing_id_in_new_files: false
 | `doc_globs` | Yes | Glob patterns for documents to scan |
 | `ignore` | No | Patterns to exclude from scanning |
 | `index_file` | No | Path to index file (default: `docs/doc_index.yaml`) |
+| `id_field` | No | Field name for document ID (default: `doc_id`) |
 | `id_format` | Yes | Template for document IDs (with `{PLACEHOLDERS}`) |
 | `dimensions` | Yes | Definition of each placeholder in `id_format` |
 | `forbid_id_change` | No | Prevent ID changes in existing documents (default: `true`) |
 | `allow_missing_id_in_new_files` | No | Allow new documents without IDs (default: `false`) |
+
+### Custom ID Field Name
+
+By default, Shirushi looks for `doc_id` in your documents. You can customize this field name using `id_field`:
+
+```yaml
+# Use "document_id" instead of "doc_id"
+id_field: "document_id"
+```
+
+When you change `id_field`, both your documents and index file must use the same field name:
+
+```markdown
+---
+document_id: FRONT-SPEC-2025-0001-X
+title: My Document
+---
+```
+
+```yaml
+# doc_index.yaml
+documents:
+  - document_id: FRONT-SPEC-2025-0001-X
+    path: docs/my-document.md
+```
 
 ---
 
@@ -178,9 +204,9 @@ Your content here...
 
 **Requirements**:
 - Must start with `---`
-- Must have `doc_id` field
+- Must have ID field (`doc_id` by default, configurable via `id_field`)
 - Front matter must be valid YAML
-- Only one `doc_id` per document
+- Only one ID field per document
 
 ### YAML Documents
 
@@ -201,9 +227,9 @@ principles:
 ```
 
 **Requirements**:
-- Must have `doc_id` at root level
+- Must have ID field at root level (`doc_id` by default, configurable via `id_field`)
 - Must be valid YAML
-- Only one `doc_id` per document
+- Only one ID field per document
 
 ---
 

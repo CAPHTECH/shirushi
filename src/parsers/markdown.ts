@@ -14,12 +14,19 @@ type ErrorDefinition = (typeof ShirushiErrors)[keyof typeof ShirushiErrors];
 
 const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
 
-export async function parseMarkdownFile(path: string): Promise<DocumentParseResult> {
+export async function parseMarkdownFile(
+  path: string,
+  idField: string = 'doc_id'
+): Promise<DocumentParseResult> {
   const file = await readFile(path, 'utf8');
-  return parseMarkdownContent(path, file);
+  return parseMarkdownContent(path, file, idField);
 }
 
-export function parseMarkdownContent(path: string, content: string): DocumentParseResult {
+export function parseMarkdownContent(
+  path: string,
+  content: string,
+  idField: string = 'doc_id'
+): DocumentParseResult {
   const sanitizedContent = normalizeFrontMatterSource(content);
   const problems: DocumentProblem[] = [];
   let docId: string | undefined;
@@ -35,16 +42,16 @@ export function parseMarkdownContent(path: string, content: string): DocumentPar
       },
     });
     const data = (parsed.data ?? {}) as Record<string, unknown>;
-    metadata = normalizeMetadata(data);
+    metadata = normalizeMetadata(data, idField);
 
-    const docIdOccurrences = countDocIdDirectives(parsed.matter);
+    const docIdOccurrences = countDocIdDirectives(parsed.matter, idField);
     if (docIdOccurrences === 0) {
       pushProblem(problems, ShirushiErrors.MISSING_ID, { path });
     } else if (docIdOccurrences > 1) {
       pushProblem(problems, ShirushiErrors.MULTIPLE_IDS_IN_DOCUMENT, { path });
     }
 
-    const value = data['doc_id'];
+    const value = data[idField];
     if (typeof value === 'string') {
       docId = value;
     } else if (value !== undefined) {
@@ -105,7 +112,10 @@ function stripBom(value: string): string {
   return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
 }
 
-function normalizeMetadata(data: Record<string, unknown>): Record<string, unknown> {
-  const { doc_id: _docId, ...rest } = data;
+function normalizeMetadata(
+  data: Record<string, unknown>,
+  idField: string = 'doc_id'
+): Record<string, unknown> {
+  const { [idField]: _docId, ...rest } = data;
   return rest;
 }
