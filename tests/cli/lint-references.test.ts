@@ -407,4 +407,83 @@ title: Document 1 Modified
     expect(output).not.toContain('STALE_REFERENCE');
     expect(output).toContain('DOC_ID_CHANGED');
   });
+
+  it('should detect stale reference even when forbid_id_change is false', async () => {
+    // Issue #15: forbid_id_change=false でも --check-references で
+    // STALE_REFERENCE を検出できることを確認
+    const configContent = `
+doc_globs:
+  - "docs/**/*.md"
+id_format: "{TYPE}-{NUM}"
+forbid_id_change: false
+reference_fields:
+  - superseded_by
+dimensions:
+  TYPE:
+    type: enum
+    values: ["DOC"]
+  NUM:
+    type: serial
+    digits: 4
+    scope: ["TYPE"]
+`;
+    await writeFile(path.join(TEST_DIR, '.shirushi.yml'), configContent);
+
+    // ドキュメント1（参照される側）
+    const doc1Initial = `---
+doc_id: DOC-0001
+title: Document 1
+---
+
+# Document 1
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/doc1.md'), doc1Initial);
+
+    // ドキュメント2（参照する側）
+    const doc2 = `---
+doc_id: DOC-0002
+title: Document 2
+---
+
+# Document 2
+
+See [Document 1](DOC-0001) for details.
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/doc2.md'), doc2);
+
+    await git.add('.');
+    await git.commit('Initial commit');
+
+    // ドキュメント1のdoc_idを変更
+    const doc1Modified = `---
+doc_id: DOC-9999
+title: Document 1 Modified
+---
+
+# Document 1 Modified
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/doc1.md'), doc1Modified);
+    await git.add('.');
+    await git.commit('Change doc_id');
+
+    // ベースコミットと比較
+    const branches = await git.branchLocal();
+    const baseRef = `${branches.current}~1`;
+
+    const exitCode = await executeLint({
+      cwd: TEST_DIR,
+      config: '.shirushi.yml',
+      base: baseRef,
+      checkReferences: true,
+    });
+
+    // forbid_id_change=false なので DOC_ID_CHANGED は報告されないが、
+    // STALE_REFERENCE は報告される
+    expect(exitCode).toBe(1);
+
+    const calls = (console.log as ReturnType<typeof vi.fn>).mock.calls;
+    const output = calls.map((call) => call.join(' ')).join('\n');
+    expect(output).not.toContain('DOC_ID_CHANGED');
+    expect(output).toContain('STALE_REFERENCE');
+  });
 });

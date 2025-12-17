@@ -408,6 +408,23 @@ export async function executeLint(options: LintOptions): Promise<number> {
       // checkReferences のみの場合は変更検出は行うがエラー報告はしない
       if (config.forbid_id_change) {
         gitIssues = changeResultToLintErrors(detectedChanges, options.base);
+      } else if (options.checkReferences && detectedChanges.errors.length > 0) {
+        // forbid_id_change=false でも checkReferences の場合は
+        // Gitエラーを報告する必要がある（検出漏れを防ぐため）
+        // doc_id変更自体はエラーとせず、Gitエラーのみ報告
+        for (const gitError of detectedChanges.errors) {
+          gitIssues.push({
+            path: gitError.context?.path ?? '(unknown)',
+            code: gitError.code,
+            message: gitError.message,
+            domain: LawDomain.Git,
+            severity: ErrorSeverity.Error,
+            details: {
+              baseRef: options.base,
+              originalError: gitError.context?.originalError,
+            },
+          });
+        }
       }
     } else {
       console.error(formatGitError(changeResult.left));
