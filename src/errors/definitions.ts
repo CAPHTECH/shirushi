@@ -249,6 +249,51 @@ export const ShirushiErrors = {
     description:
       'A reference points to a doc_id that was changed in this PR. Update the reference to the new doc_id.',
   },
+
+  // Assign Domain (v0.2: ID自動割り当て)
+  ASSIGN_METADATA_INCOMPLETE: {
+    code: 'ASSIGN_METADATA_INCOMPLETE',
+    message: 'Required metadata for ID generation is missing',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description:
+      'Document lacks required metadata (e.g., doc_type) for automatic ID generation.',
+  },
+  ASSIGN_GENERATION_FAILED: {
+    code: 'ASSIGN_GENERATION_FAILED',
+    message: 'Failed to generate doc_id',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'An error occurred during doc_id generation.',
+  },
+  ASSIGN_WRITE_FAILED: {
+    code: 'ASSIGN_WRITE_FAILED',
+    message: 'Failed to write doc_id to document',
+    domain: LawDomain.System,
+    severity: ErrorSeverity.Error,
+    description: 'An I/O error occurred while writing doc_id to the document.',
+  },
+  ASSIGN_ROLLBACK_FAILED: {
+    code: 'ASSIGN_ROLLBACK_FAILED',
+    message: 'Failed to rollback changes after error',
+    domain: LawDomain.System,
+    severity: ErrorSeverity.Error,
+    description: 'Could not restore original file contents after a failure.',
+  },
+  ASSIGN_INDEX_UPDATE_FAILED: {
+    code: 'ASSIGN_INDEX_UPDATE_FAILED',
+    message: 'Failed to update index file',
+    domain: LawDomain.System,
+    severity: ErrorSeverity.Error,
+    description: 'An I/O error occurred while updating the index file.',
+  },
+  ASSIGN_VALIDATION_FAILED: {
+    code: 'ASSIGN_VALIDATION_FAILED',
+    message: 'Generated doc_id failed validation',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'The generated doc_id does not pass validation checks.',
+  },
 } as const;
 
 export type ShirushiErrorCode = keyof typeof ShirushiErrors;

@@ -15,6 +15,7 @@ import { Command } from 'commander';
 
 import { logger } from '../utils/logger.js';
 
+import { registerAssignCommand } from './commands/assign.js';
 import { registerLintCommand } from './commands/lint.js';
 import { registerScanCommand } from './commands/scan.js';
 
@@ -35,6 +36,7 @@ function createProgram(): Command {
     .version(VERSION);
 
   // サブコマンドを登録
+  registerAssignCommand(program);
   registerLintCommand(program);
   registerScanCommand(program);
 
