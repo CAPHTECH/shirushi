@@ -135,6 +135,15 @@ dimensions:
 # Validation rules
 forbid_id_change: true
 allow_missing_id_in_new_files: false
+
+# Reference integrity settings (for --check-references)
+reference_fields:
+  - superseded_by
+  - related_docs
+
+reference_patterns:
+  - name: ref_tag
+    pattern: '@ref\s+{DOC_ID}'
 ```
 
 ### Configuration Fields
@@ -149,6 +158,8 @@ allow_missing_id_in_new_files: false
 | `dimensions` | Yes | Definition of each placeholder in `id_format` |
 | `forbid_id_change` | No | Prevent ID changes in existing documents (default: `true`) |
 | `allow_missing_id_in_new_files` | No | Allow new documents without IDs (default: `false`) |
+| `reference_fields` | No | YAML fields to check for doc_id references (default: `["superseded_by"]`) |
+| `reference_patterns` | No | Custom patterns to detect doc_id references (default: Markdown links) |
 
 ### Custom ID Field Name
 
@@ -249,6 +260,9 @@ shirushi lint --base HEAD~1
 
 # Only check changed files
 shirushi lint --base origin/main --changed-only
+
+# Check reference integrity (detect stale references to changed doc_ids)
+shirushi lint --base origin/main --check-references
 
 # Use specific config file
 shirushi lint --config /path/to/.shirushi.yml
@@ -456,6 +470,39 @@ New ID: PCE-SPEC-2025-0002-H
 
 **Fix**: This is usually intentional. If not, revert the change.
 
+#### `STALE_REFERENCE`
+
+A reference points to a doc_id that was changed (when using `--check-references`).
+
+**Example**:
+```
+File: docs/guide.md
+Reference to: PCE-SPEC-2025-0001-G (changed to PCE-SPEC-2025-0001-H)
+Location: Line 42 or field "superseded_by"
+```
+
+**Fix**: Update the reference to use the new doc_id:
+
+```markdown
+<!-- Before -->
+See [specification](PCE-SPEC-2025-0001-G) for details.
+
+<!-- After -->
+See [specification](PCE-SPEC-2025-0001-H) for details.
+```
+
+Or update the YAML field:
+
+```yaml
+# Before
+superseded_by: PCE-SPEC-2025-0001-G
+
+# After
+superseded_by: PCE-SPEC-2025-0001-H
+```
+
+**Note**: References inside code blocks (``` ``` ```) are ignored.
+
 #### `DOC_ID_MISMATCH_WITH_INDEX`
 
 Document ID doesn't match index.
@@ -522,7 +569,7 @@ jobs:
         run: npm install -g shirushi
 
       - name: Validate Document IDs
-        run: shirushi lint --base origin/${{ github.base_ref }}
+        run: shirushi lint --base origin/${{ github.base_ref }} --check-references
 ```
 
 ### GitLab CI
@@ -533,7 +580,7 @@ docid-lint:
   image: node:20
   script:
     - npm install -g shirushi
-    - shirushi lint --base origin/main
+    - shirushi lint --base origin/main --check-references
   only:
     changes:
       - docs/**
