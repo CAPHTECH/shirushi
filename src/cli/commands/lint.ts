@@ -369,11 +369,14 @@ export async function executeLint(options: LintOptions): Promise<number> {
   const idField = config.id_field ?? 'doc_id';
   const indexIssues = await validateIndex(scanResult, config.index_file, cwd, idField);
 
-  // 7. Git差分でdoc_id変更を検出（--base 指定時 かつ forbid_id_change が true）
+  // 7. Git差分でdoc_id変更を検出
+  // --base 指定時、かつ以下のいずれかの場合に実行：
+  // - forbid_id_change が true（doc_id変更をエラーとして報告）
+  // - checkReferences が true（参照整合性チェックのために変更検出が必要）
   let gitIssues: LintError[] = [];
   let detectedChanges: ChangeDetectionResult | undefined;
 
-  if (options.base && config.forbid_id_change) {
+  if (options.base && (config.forbid_id_change || options.checkReferences)) {
     const gitOps = createGitOperations({ cwd });
     const detector = createChangeDetector(gitOps, idField);
 
@@ -401,7 +404,11 @@ export async function executeLint(options: LintOptions): Promise<number> {
 
     if (isRight(changeResult)) {
       detectedChanges = changeResult.right;
-      gitIssues = changeResultToLintErrors(detectedChanges, options.base);
+      // forbid_id_change が true の場合のみ DOC_ID_CHANGED エラーを報告
+      // checkReferences のみの場合は変更検出は行うがエラー報告はしない
+      if (config.forbid_id_change) {
+        gitIssues = changeResultToLintErrors(detectedChanges, options.base);
+      }
     } else {
       console.error(formatGitError(changeResult.left));
       return 1;

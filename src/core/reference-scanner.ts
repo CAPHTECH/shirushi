@@ -47,13 +47,20 @@ const INLINE_CODE_REGEX = /`[^`]+`/g;
 /**
  * コードブロックとインラインコードを除去したコンテンツを返す
  *
+ * 行番号を維持するため、コードブロックは内容を削除し改行のみを保持する。
+ * これにより、除去後のコンテンツでも元のファイルの行番号が正しく計算できる。
+ *
  * @param content - 元のコンテンツ
  * @returns コードブロック・インラインコードを除去したコンテンツ
  */
 export function removeCodeBlocks(content: string): string {
-  // まずコードブロックを除去
-  let cleaned = content.replace(CODE_BLOCK_REGEX, '');
-  // 次にインラインコードを除去
+  // コードブロックを改行のみで置換（行番号を維持するため）
+  let cleaned = content.replace(CODE_BLOCK_REGEX, (match) => {
+    // マッチした文字列内の改行の数を数え、同じ数の改行で置換
+    const newlines = match.split('\n').length - 1;
+    return '\n'.repeat(newlines);
+  });
+  // インラインコードは空文字で置換（行番号に影響なし）
   cleaned = cleaned.replace(INLINE_CODE_REGEX, '');
   return cleaned;
 }
@@ -278,9 +285,19 @@ export function extractYamlFieldReferences(
 }
 
 /**
+ * ReDoS軽減のための制限値
+ */
+const MAX_PATTERN_LENGTH = 500; // パターンの最大長
+const MAX_LINE_LENGTH = 10000; // 処理する行の最大長
+
+/**
  * カスタムパターンで参照を抽出
  *
  * コードブロック内のマッチは除外する。
+ *
+ * ReDoS（正規表現によるDoS）を軽減するため、以下の制限を適用：
+ * - パターンの長さ制限
+ * - 処理する行の長さ制限
  *
  * @param content - ドキュメントコンテンツ
  * @param sourcePath - ソースファイルパス
@@ -306,6 +323,12 @@ export function extractCustomPatternReferences(
     const docIdPatternSource = docIdPattern.source;
     const expandedPattern = patternDef.pattern.replace(/\{DOC_ID\}/g, `(${docIdPatternSource})`);
 
+    // ReDoS軽減: パターンの長さを制限
+    if (expandedPattern.length > MAX_PATTERN_LENGTH) {
+      // 長すぎるパターンはスキップ（警告ログは呼び出し側で処理可能）
+      continue;
+    }
+
     let compiledPattern: RegExp;
     try {
       compiledPattern = new RegExp(expandedPattern, 'g');
@@ -317,6 +340,12 @@ export function extractCustomPatternReferences(
     let lineNumber = 0;
     for (const line of lines) {
       lineNumber++;
+
+      // ReDoS軽減: 長すぎる行はスキップ
+      if (line.length > MAX_LINE_LENGTH) {
+        continue;
+      }
+
       compiledPattern.lastIndex = 0;
       let match: RegExpExecArray | null;
 

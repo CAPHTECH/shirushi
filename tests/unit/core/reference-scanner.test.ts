@@ -79,13 +79,14 @@ More text with [another link](PCE-SPEC-2025-0003-B)
     expect(result).toContain('[link](PCE-SPEC-2025-0002-A)');
   });
 
-  it('空のコードブロックを処理する', () => {
+  it('空のコードブロックを処理する（行番号維持のため改行は保持）', () => {
     const content = `\`\`\`
 \`\`\``;
 
     const result = removeCodeBlocks(content);
 
-    expect(result).toBe('');
+    // 空のコードブロックは1行のため、1つの改行が保持される
+    expect(result).toBe('\n');
   });
 });
 
