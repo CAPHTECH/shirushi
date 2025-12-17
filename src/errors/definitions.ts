@@ -239,6 +239,16 @@ export const ShirushiErrors = {
     severity: ErrorSeverity.Error,
     description: 'Required scope dimension value is not available in context.',
   },
+
+  // Reference Domain (Issue #15: 文書間参照整合性チェック)
+  STALE_REFERENCE: {
+    code: 'STALE_REFERENCE',
+    message: 'Reference to changed doc_id found',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description:
+      'A reference points to a doc_id that was changed in this PR. Update the reference to the new doc_id.',
+  },
 } as const;
 
 export type ShirushiErrorCode = keyof typeof ShirushiErrors;

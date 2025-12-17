@@ -61,6 +61,21 @@ export const DimensionSchema = z.discriminatedUnion('type', [
   ChecksumDimensionSchema,
 ]);
 
+/**
+ * 参照パターン定義スキーマ
+ *
+ * Issue #15: doc_id変更時の文書間参照整合性チェック機能
+ *
+ * pattern内の {DOC_ID} は id_format から生成される正規表現パターンに展開される。
+ * 例: "\\[.*?\\]\\({DOC_ID}\\)" → Markdownリンク [text](doc_id) を検出
+ */
+export const ReferencePatternSchema = z.object({
+  /** パターン名（識別用） */
+  name: z.string().min(1),
+  /** 正規表現パターン。{DOC_ID} をプレースホルダーとして使用可能 */
+  pattern: z.string().min(1),
+});
+
 export const ConfigSchema = z
   .object({
     id_format: z.string().min(1, 'id_format must not be empty'),
@@ -77,8 +92,24 @@ export const ConfigSchema = z
       .default(DEFAULT_ID_FIELD),
     forbid_id_change: z.boolean().default(true),
     allow_missing_id_in_new_files: z.boolean().default(false),
+
+    // Issue #15: 参照整合性チェック設定
+    /**
+     * 参照を含む可能性のあるYAMLフィールド名
+     * 例: ["superseded_by", "related_docs"]
+     */
+    reference_fields: z.array(z.string().min(1)).default(['superseded_by']),
+
+    /**
+     * 参照パターン定義
+     * 各パターンの pattern 内で {DOC_ID} を使用可能。
+     * デフォルトではMarkdownリンク形式を検出。
+     */
+    reference_patterns: z
+      .array(ReferencePatternSchema)
+      .default([{ name: 'markdown_link', pattern: '\\[.*?\\]\\({DOC_ID}\\)' }]),
   })
-.superRefine((config, ctx) => {
+  .superRefine((config, ctx) => {
     const placeholders = extractTemplatePlaceholders(config.id_format);
     const rawSegments = extractRawPlaceholderSegments(config.id_format);
     const invalidNames = rawSegments.filter((name) => !PLACEHOLDER_NAME_PATTERN.test(name));
@@ -129,10 +160,29 @@ export const ConfigSchema = z
         });
       }
     });
+
+    // 参照パターンの正規表現構文を検証
+    for (let i = 0; i < config.reference_patterns.length; i++) {
+      const pattern = config.reference_patterns[i];
+      if (pattern) {
+        try {
+          // {DOC_ID} を仮のパターンに置換して正規表現として有効かチェック
+          const testPattern = pattern.pattern.replace(/\{DOC_ID\}/g, '.*');
+          new RegExp(testPattern);
+        } catch {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['reference_patterns', i, 'pattern'],
+            message: `Invalid regex pattern: ${pattern.pattern}`,
+          });
+        }
+      }
+    }
   });
 
 export type ShirushiConfig = z.infer<typeof ConfigSchema>;
 export type DimensionDefinition = ShirushiConfig['dimensions'][string];
+export type ReferencePattern = z.infer<typeof ReferencePatternSchema>;
 
 const PLACEHOLDER_REGEX = /\{([A-Za-z0-9_]+)\}/g;
 const RAW_PLACEHOLDER_REGEX = /\{([^}]*)\}/g;
