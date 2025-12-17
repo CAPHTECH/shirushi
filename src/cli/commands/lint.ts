@@ -9,6 +9,7 @@
  * - --quiet: エラーパスのみ出力
  * - --base <ref>: Git参照との差分でdoc_id変更を検出
  * - --changed-only: 変更ファイルのみをlint
+ * - --check-references: doc_id変更時の参照整合性をチェック（--base必須）
  */
 
 import { isLeft, isRight } from 'fp-ts/Either';
@@ -26,6 +27,8 @@ import {
   loadIndexFile,
   validateIndexConsistency,
 } from '@/core/index-manager';
+import { scanDocumentReferences } from '@/core/reference-scanner';
+import { validateReferences } from '@/core/reference-validator';
 import { scanDocuments } from '@/core/scanner';
 import { validateDocId } from '@/core/validator';
 import { ShirushiErrors, LawDomain, ErrorSeverity } from '@/errors/definitions';
@@ -40,6 +43,7 @@ import type { LintError } from '@/cli/output/reporters';
 import type { ShirushiConfig } from '@/config/schema';
 import type { ScanResult } from '@/core/scanner';
 import type { GitError, ChangeDetectionResult, ChangedFile, DetectionTarget } from '@/git';
+import type { StaleReference } from '@/types/reference';
 import type { Command } from 'commander';
 
 /**
@@ -55,6 +59,8 @@ export interface LintOptions {
   base?: string;
   /** 変更ファイルのみをlint */
   changedOnly?: boolean;
+  /** doc_id変更時の参照整合性をチェック（--base必須） */
+  checkReferences?: boolean;
 }
 
 /**
@@ -66,6 +72,7 @@ interface LintCliOptions {
   quiet?: boolean;
   base?: string;
   changedOnly?: boolean;
+  checkReferences?: boolean;
 }
 
 /**
@@ -145,6 +152,40 @@ function changeResultToLintErrors(
   }
 
   return errors;
+}
+
+/**
+ * StaleReferenceをLintErrorに変換
+ *
+ * Issue #15: doc_id変更時の参照整合性チェック
+ */
+function staleReferenceToLintError(staleRef: StaleReference): LintError {
+  const newDocIdPart = staleRef.newDocId
+    ? ` (new: "${staleRef.newDocId}")`
+    : ' (deleted)';
+  const locationPart = staleRef.lineNumber ? `:${staleRef.lineNumber}` : '';
+  const kindPart = staleRef.kind === 'yaml_field' && staleRef.fieldName
+    ? ` in field "${staleRef.fieldName}"`
+    : staleRef.kind === 'custom_pattern' && staleRef.patternName
+      ? ` (pattern: ${staleRef.patternName})`
+      : '';
+
+  return {
+    path: staleRef.sourcePath,
+    code: ShirushiErrors.STALE_REFERENCE.code,
+    message: `Reference to changed doc_id "${staleRef.oldDocId}"${newDocIdPart}${kindPart} at ${staleRef.changedDocPath}${locationPart}`,
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    details: {
+      oldDocId: staleRef.oldDocId,
+      newDocId: staleRef.newDocId,
+      changedDocPath: staleRef.changedDocPath,
+      kind: staleRef.kind,
+      lineNumber: staleRef.lineNumber,
+      fieldName: staleRef.fieldName,
+      patternName: staleRef.patternName,
+    },
+  };
 }
 
 /**
@@ -330,6 +371,8 @@ export async function executeLint(options: LintOptions): Promise<number> {
 
   // 7. Git差分でdoc_id変更を検出（--base 指定時 かつ forbid_id_change が true）
   let gitIssues: LintError[] = [];
+  let detectedChanges: ChangeDetectionResult | undefined;
+
   if (options.base && config.forbid_id_change) {
     const gitOps = createGitOperations({ cwd });
     const detector = createChangeDetector(gitOps, idField);
@@ -357,18 +400,82 @@ export async function executeLint(options: LintOptions): Promise<number> {
     );
 
     if (isRight(changeResult)) {
-      gitIssues = changeResultToLintErrors(changeResult.right, options.base);
+      detectedChanges = changeResult.right;
+      gitIssues = changeResultToLintErrors(detectedChanges, options.base);
     } else {
       console.error(formatGitError(changeResult.left));
       return 1;
     }
   }
 
-  // 8. 結果を構築
-  const allIssues = [...documentIssues, ...indexIssues, ...gitIssues];
+  // 8. 参照整合性チェック（--check-references 指定時）
+  // Issue #15: doc_id変更時の文書間参照整合性チェック
+  let referenceIssues: LintError[] = [];
+
+  if (options.checkReferences) {
+    // --check-references は --base と併用が必要
+    if (!options.base) {
+      console.error('Error: --check-references requires --base option');
+      return 1;
+    }
+
+    // 変更されたdoc_idがある場合のみチェック
+    if (detectedChanges && detectedChanges.changedDocIds.length > 0) {
+      logger.debug('lint.references', 'Checking reference integrity', {
+        changedCount: detectedChanges.changedDocIds.length,
+      });
+
+      // 全ドキュメント（変更ファイルだけでなく）をスキャンして参照を抽出
+      // --changed-only の場合でも、参照チェックは全ドキュメントを対象にする
+      const allDocsScanResult = targetPaths
+        ? await scanDocuments(config, { cwd })
+        : scanResult;
+
+      // 参照をスキャン
+      const refScanResult = await scanDocumentReferences(
+        allDocsScanResult.documents,
+        config,
+        cwd
+      );
+
+      // スキャンエラーをログ出力
+      for (const scanError of refScanResult.errors) {
+        logger.warn('lint.references.scan', 'Reference scan error', {
+          path: scanError.path,
+          message: scanError.message,
+        });
+      }
+
+      // 変更されたdoc_idのマップを構築
+      const changedDocIdsMap = new Map(
+        detectedChanges.changedDocIds
+          .filter((c) => c.oldDocId !== null)
+          .map((c) => [
+            c.oldDocId!,
+            { newDocId: c.newDocId, changedDocPath: c.path },
+          ])
+      );
+
+      // 参照を検証
+      const validationResult = validateReferences(refScanResult.references, {
+        changedDocIds: changedDocIdsMap,
+      });
+
+      // StaleReferenceをLintErrorに変換
+      referenceIssues = validationResult.staleReferences.map(staleReferenceToLintError);
+
+      logger.debug('lint.references.result', 'Reference check completed', {
+        totalReferences: refScanResult.references.length,
+        staleCount: referenceIssues.length,
+      });
+    }
+  }
+
+  // 9. 結果を構築
+  const allIssues = [...documentIssues, ...indexIssues, ...gitIssues, ...referenceIssues];
   const result = buildLintResult(allIssues);
 
-  // 9. 出力
+  // 10. 出力
   if (options.quiet) {
     const output = formatLintQuiet(result);
     if (output) {
@@ -378,7 +485,7 @@ export async function executeLint(options: LintOptions): Promise<number> {
     console.log(formatLintResult(result, format));
   }
 
-  // 10. 終了コード
+  // 11. 終了コード
   return result.summary.totalErrors > 0 ? 1 : 0;
 }
 
@@ -401,6 +508,10 @@ export function registerLintCommand(program: Command): void {
       'Git reference to compare against (branch, tag, or commit)'
     )
     .option('--changed-only', 'Only lint files that have been modified')
+    .option(
+      '--check-references',
+      'Check for stale references to changed doc_ids (requires --base)'
+    )
     .action(async (opts: LintCliOptions) => {
       const exitCode = await executeLint({
         ...(opts.config ? { config: opts.config } : {}),
@@ -408,6 +519,7 @@ export function registerLintCommand(program: Command): void {
         ...(opts.quiet ? { quiet: opts.quiet } : {}),
         ...(opts.base ? { base: opts.base } : {}),
         ...(opts.changedOnly ? { changedOnly: opts.changedOnly } : {}),
+        ...(opts.checkReferences ? { checkReferences: opts.checkReferences } : {}),
       });
       process.exit(exitCode);
     });
