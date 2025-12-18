@@ -84,6 +84,8 @@ shirushi/
 │   │   ├── commands/           # Command implementations
 │   │   │   ├── lint.ts
 │   │   │   ├── scan.ts
+│   │   │   ├── assign.ts       # ID assignment command
+│   │   │   ├── rehash.ts       # Content hash recalculation
 │   │   │   └── index/          # Index-related commands (future)
 │   │   └── output/             # Output formatters
 │   │       ├── formatters.ts   # JSON, YAML, table formatters
@@ -92,8 +94,10 @@ shirushi/
 │   ├── core/                   # Core business logic
 │   │   ├── validator.ts        # Main validation orchestrator
 │   │   ├── scanner.ts          # Document scanning
-│   │   ├── generator.ts        # ID generation (internal, v0.1)
-│   │   └── index-manager.ts    # Index file operations
+│   │   ├── generator.ts        # ID generation
+│   │   ├── index-manager.ts    # Index file operations
+│   │   ├── content-validator.ts  # Content hash validation
+│   │   └── source-ref-scanner.ts # Source code reference detection
 │   │
 │   ├── dimensions/             # Dimension type handlers
 │   │   ├── index.ts            # Dimension registry
@@ -134,7 +138,9 @@ shirushi/
 │   └── utils/                  # Utility functions
 │       ├── logger.ts           # Structured logging
 │       ├── glob.ts             # Glob utilities
-│       └── regex.ts            # Regex utilities
+│       ├── regex.ts            # Regex utilities
+│       ├── content-hash.ts     # SHA-256 content hashing
+│       └── path.ts             # Cross-platform path utilities
 │
 ├── tests/                      # Test files
 │   ├── unit/                   # Unit tests (per module)
