@@ -15,20 +15,23 @@ const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
 
 export async function parseYamlFile(
   path: string,
-  idField: string = 'doc_id'
+  idField: string = 'doc_id',
+  preserveContent: boolean = false
 ): Promise<DocumentParseResult> {
   const file = await readFile(path, 'utf8');
-  return parseYamlContent(path, file, idField);
+  return parseYamlContent(path, file, idField, preserveContent);
 }
 
 export function parseYamlContent(
   path: string,
   content: string,
-  idField: string = 'doc_id'
+  idField: string = 'doc_id',
+  preserveContent: boolean = false
 ): DocumentParseResult {
   const problems: DocumentProblem[] = [];
   let docId: string | undefined;
   let metadata: Record<string, unknown> = {};
+  let bodyContent: string | undefined;
 
   const docIdOccurrences = countDocIdDirectives(content, idField);
   if (docIdOccurrences > 1) {
@@ -47,6 +50,12 @@ export function parseYamlContent(
         pushProblem(problems, ShirushiErrors.MISSING_ID, { path });
       } else {
         pushProblem(problems, ShirushiErrors.INVALID_DOC_ID_TYPE, { path });
+      }
+
+      // content_integrity用にYAMLコンテンツを生成（doc_idフィールド除外して再シリアライズ）
+      // sortKeys: true でキー順序を固定し、同一内容で同一ハッシュを保証
+      if (preserveContent) {
+        bodyContent = yaml.dump(rest, { sortKeys: true, lineWidth: -1 });
       }
     } else {
       pushProblem(
@@ -78,6 +87,7 @@ export function parseYamlContent(
     docId,
     metadata,
     problems,
+    ...(bodyContent !== undefined ? { content: bodyContent } : {}),
   };
 }
 

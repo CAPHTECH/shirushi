@@ -160,6 +160,7 @@ reference_patterns:
 | `allow_missing_id_in_new_files` | No | Allow new documents without IDs (default: `false`) |
 | `reference_fields` | No | YAML fields to check for doc_id references (default: `["superseded_by"]`) |
 | `reference_patterns` | No | Custom patterns to detect doc_id references (default: Markdown links) |
+| `content_integrity` | No | Content hash verification settings (see [Content Integrity](#content-integrity)) |
 
 ### Custom ID Field Name
 
@@ -302,6 +303,36 @@ shirushi scan --format yaml
 └────────────────────────────┴──────────────────────────┴─────────────────────────┴──────────┘
 ```
 
+### `shirushi rehash`
+
+Recalculate content hashes for all documents. Used when `content_integrity` is enabled.
+
+```bash
+# Recalculate all content hashes
+shirushi rehash
+
+# Preview changes without modifying files
+shirushi rehash --dry-run
+
+# JSON output
+shirushi rehash --format json
+```
+
+**Output Example**:
+
+```
+Changes:
+  [ADD] docs/spec.md -> 39cd2c92...
+  [UPD] docs/api.md -> 8577e3dc...
+
+Summary: 1 added, 1 updated, 5 unchanged, 0 skipped
+```
+
+**Use Cases**:
+- After intentionally modifying document content
+- When setting up `content_integrity` for the first time
+- After bulk-editing documents
+
 ---
 
 ## Dimension Types
@@ -415,6 +446,75 @@ CHK1:
 - Maps to A-Z
 
 **Purpose**: Detect accidental ID modifications, not for security.
+
+---
+
+## Content Integrity
+
+Content integrity checking detects unauthorized or accidental modifications to document content using SHA-256 hashing.
+
+### Enabling Content Integrity
+
+Add `content_integrity` to your `.shirushi.yml`:
+
+```yaml
+content_integrity:
+  enabled: true
+  algorithm: sha256  # Currently only sha256 is supported
+```
+
+### How It Works
+
+1. **Hash Calculation**: When you run `shirushi rehash`, the content of each document (excluding frontmatter) is hashed using SHA-256
+2. **Storage**: Hashes are stored in the index file (`content_hash` field)
+3. **Validation**: When you run `shirushi lint`, content is re-hashed and compared with stored values
+4. **Mismatch Detection**: If content has changed, `CONTENT_HASH_MISMATCH` error is reported
+
+### Index Entry with Content Hash
+
+```yaml
+documents:
+  - doc_id: SPEC-2025-0001
+    path: docs/spec.md
+    title: Specification Document
+    content_hash: 39cd2c92388978c30654eb06a160ad7b845fe44f9d00830715f344d895570129
+```
+
+### Source Reference Warnings
+
+Optionally, you can configure Shirushi to warn when source code references documents that have content changes:
+
+```yaml
+content_integrity:
+  enabled: true
+  algorithm: sha256
+  source_references:
+    - glob: "src/**/*.ts"
+      pattern: "@see\\s+({DOC_ID})"
+    - glob: "**/*.py"
+      pattern: "# see:\\s+({DOC_ID})"
+```
+
+When a document's content hash mismatches, Shirushi scans source files matching the glob patterns and reports warnings for files that reference the changed document.
+
+### Workflow
+
+```bash
+# 1. Initial setup - calculate hashes for all documents
+shirushi rehash
+
+# 2. Commit the updated index file
+git add docs/doc_index.yaml
+git commit -m "chore: add content hashes"
+
+# 3. In CI, lint will now verify content integrity
+shirushi lint
+
+# 4. After intentional content changes, recalculate hashes
+shirushi rehash
+git add docs/doc_index.yaml
+git commit -m "chore: update content hashes"
+```
 
 ---
 
@@ -537,6 +637,50 @@ documents:
     path: docs/pce/new-spec.md    # Path to the document
     title: New Specification       # Document title
 ```
+
+### Content Integrity Errors
+
+These errors are reported when `content_integrity` is enabled.
+
+#### `CONTENT_HASH_MISMATCH`
+
+Document content has changed since last hash calculation.
+
+**Example**:
+```
+docs/spec.md: Content hash mismatch: expected 39cd2c92..., got 8577e3dc...
+```
+
+**Fix**: If the change was intentional, run `shirushi rehash` to update hashes:
+
+```bash
+shirushi rehash
+git add docs/doc_index.yaml
+git commit -m "chore: update content hashes after spec update"
+```
+
+If unintentional, revert the document changes.
+
+#### `MISSING_CONTENT_HASH`
+
+Document is in index but has no `content_hash` field.
+
+**Fix**: Run `shirushi rehash` to calculate missing hashes:
+
+```bash
+shirushi rehash
+```
+
+#### `CONTENT_CHANGED_WITH_SOURCE_REFS`
+
+Document content changed and source code references it (warning).
+
+**Example**:
+```
+src/handler.ts: Source file references SPEC-2025-0001 which has content changes (line 42)
+```
+
+**Fix**: Review the source code to ensure it's compatible with the updated document content.
 
 ---
 

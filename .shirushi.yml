@@ -54,3 +54,8 @@ dimensions:
 # Validation rules
 forbid_id_change: true                  # Prevent changing existing IDs
 allow_missing_id_in_new_files: false    # All documents must have IDs
+
+# Content integrity checking
+content_integrity:
+  enabled: true
+  algorithm: sha256

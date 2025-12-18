@@ -2,120 +2,119 @@ documents:
   - doc_id: SHI-SPEC-2025-0001
     path: docs/specifications.md
     title: Shirushi 仕様書
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 908c63245319a17b3d25faf1e3aa57b635a5e177cc3544ce1a2d610ef23d0440
   - doc_id: SHI-API-2025-0001
     path: docs/api/interface-design.md
     title: Shirushi Interface Design
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 8e4cb663b97c3b1a26c8c52f62bf8298820a97442a0dc4c24cb49b1bbe8adff1
   - doc_id: SHI-API-2025-0002
     path: docs/api/README.md
     title: Shirushi API Documentation
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 286ccf446bbc0f8ce449040b9eb607dd25509241d346389128f7b525003ef70d
   - doc_id: SHI-INT-2025-0001
     path: docs/api/internal-design.md
     title: Shirushi Internal Design
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 2fb3d778bd80d03e1162e01730a583fcc8ab79bd08fd8c608d84513c9e3c2038
   - doc_id: SHI-GUIDE-2025-0001
     path: docs/developer-guide.md
     title: Shirushi Developer Guide
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 0b2c0bb93ca1c4374134ddea778e5c26f4dde4b4e68db4d8bbb5da06046c2339
   - doc_id: SHI-USER-2025-0001
     path: docs/user-guide.md
     title: Shirushi User Guide
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 011cf0315fdaeb899bb43dcece1919c975b0b120bcd8c2b39f32773e34918706
   - doc_id: SHI-FORMAL-2025-0001
     path: docs/formal/README.md
     title: Shirushi Formal Specifications
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 4a84ead92f37f5df052639603a2e53323c78b8fd10d031ffb5eef9554154ddae
   - doc_id: SHI-FORMAL-2025-0002
     path: docs/formal/VERIFICATION_STRATEGY.md
     title: Shirushi Formal Verification Strategy
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: c3eca5c842b4a46200613a57aac32bf898c81f6249df5f0fc209aebcc8986364
   - doc_id: SHI-FORMAL-2025-0003
     path: docs/formal/FORMAL_SYNC_SPEC.md
-    title: "shirushi formal-sync 仕様"
-    version: "0.1.0"
+    title: shirushi formal-sync 仕様
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 2b6efd83a633ca82d1dbe80e6297c81b42f7f0cd8b656d7bb00dae10defd9a82
   - doc_id: SHI-FORMAL-2025-0004
     path: docs/formal/CI_INTEGRATION_DESIGN.md
     title: Formal Verification CI Integration Design
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 96eeaf414dcd84077ff7e1b217c3b6d1719bf1dd302ffa157e154517a8994434
   - doc_id: SHI-FORMAL-2025-0005
     path: docs/formal/DESIGN_DIALOGUE.md
     title: 2025-11-19 アーキテクチャ設計レビュー対話ログ
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 850933a8eefb3ccdcfd5f6440a67e9bcebd8ba449a1523a6d59dd5b2ce862dc2
   - doc_id: SHI-ADR-2025-0001
     path: docs/adr/0001-use-discriminated-unions-for-dimensions.md
-    title: "ADR-0001: Use Discriminated Unions for Dimension Types"
-    version: "1.0.0"
+    title: 'ADR-0001: Use Discriminated Unions for Dimension Types'
     status: Accepted
-    created_at: "2025-01-19"
+    version: 1.0.0
+    content_hash: eae37f765d92cb22a776aa6fe679f4659cdcd4994f6547ea086697cd67db6fee
   - doc_id: SHI-ADR-2025-0002
     path: docs/adr/0002-zod-for-configuration-validation.md
-    title: "ADR-0002: Use Zod for Configuration Validation"
-    version: "1.0.0"
+    title: 'ADR-0002: Use Zod for Configuration Validation'
     status: Accepted
-    created_at: "2025-01-19"
+    version: 1.0.0
+    content_hash: 6eb3a457eb4362d9482f748aaec7d43bcb75ec5c9c491276b4720c4a6eb0ba8d
   - doc_id: SHI-ADR-2025-0003
     path: docs/adr/0003-document-is-source-of-truth.md
-    title: "ADR-0003: Document is Source of Truth for doc_id"
-    version: "1.0.0"
+    title: 'ADR-0003: Document is Source of Truth for doc_id'
     status: Accepted
-    created_at: "2025-01-19"
+    version: 1.0.0
+    content_hash: 4111001cf7fc3cb396089a812689acb29c3ef3685b03eb6e174008d6d363a0f0
   - doc_id: SHI-ADR-2025-0004
     path: docs/adr/0004-simple-checksum-algorithm.md
-    title: "ADR-0004: Use Simple mod26AZ Checksum Algorithm"
-    version: "1.0.0"
+    title: 'ADR-0004: Use Simple mod26AZ Checksum Algorithm'
     status: Accepted
-    created_at: "2025-01-19"
+    version: 1.0.0
+    content_hash: 049e9676d94c3c4b2674d05dbe11000a1c90c4385608df308c46133ff125c64c
   - doc_id: SHI-ADR-2025-0005
     path: docs/adr/0005-defer-assign-command.md
-    title: "ADR-0005: Defer assign Command to v0.2"
-    version: "1.0.0"
+    title: 'ADR-0005: Defer assign Command to v0.2'
     status: Accepted
-    created_at: "2025-01-19"
+    version: 1.0.0
+    content_hash: d33a17edcc4b896f6cea5b757966fe4a575ac39da6b26c4b720e1afdf9d43c1b
   - doc_id: SHI-ADR-2025-0006
     path: docs/adr/0006-no-gap-validation-for-serials.md
-    title: "ADR-0006: No Gap Validation for Serial Numbers in v0.1"
-    version: "1.0.0"
+    title: 'ADR-0006: No Gap Validation for Serial Numbers in v0.1'
     status: Accepted
-    created_at: "2025-01-19"
+    version: 1.0.0
+    content_hash: 909a4ee426cead037a8d6c3c99ed6e5ae26a71ce75d669aa4c9b57c0dcd10dbc
   - doc_id: SHI-ADR-2025-0007
     path: docs/adr/0007-manual-index-synchronization.md
-    title: "ADR-0007: Manual Index Synchronization Only"
-    version: "1.0.0"
+    title: 'ADR-0007: Manual Index Synchronization Only'
     status: Accepted
-    created_at: "2025-01-19"
+    version: 1.0.0
+    content_hash: f8802cb6f3e65fe854e1794987b71dd70a9b1207628cea13bab4d5203e0c9c49
   - doc_id: SHI-ADR-2025-0100
     path: docs/adr/README.md
     title: Architecture Decision Records (ADRs)
-    version: "0.1.0"
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0
+    content_hash: 8759cad076d4f3defe9dd3b38da9f320936b8dca275c9bf16e03e468b2a7b8aa
   - doc_id: SHI-ADR-2025-0101
     path: docs/adr/template.md
-    title: "ADR-XXXX: Template"
-    version: "0.1.0"
+    title: 'ADR-XXXX: Template'
     status: Draft
-    created_at: "2025-11-19"
+    version: 0.1.0

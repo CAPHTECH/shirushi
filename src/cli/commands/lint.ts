@@ -23,13 +23,16 @@ import {
   validationErrorToLintError,
   formatLintQuiet,
 } from '@/cli/output/reporters';
+import { validateContentIntegrity } from '@/core/content-validator';
 import {
   loadIndexFile,
   validateIndexConsistency,
+  type IndexEntry,
 } from '@/core/index-manager';
 import { scanDocumentReferences } from '@/core/reference-scanner';
 import { validateReferences } from '@/core/reference-validator';
 import { scanDocuments } from '@/core/scanner';
+import { scanSourceReferences, filterReferencesByDocIds } from '@/core/source-ref-scanner';
 import { validateDocId } from '@/core/validator';
 import { ShirushiErrors, LawDomain, ErrorSeverity } from '@/errors/definitions';
 import {
@@ -37,6 +40,7 @@ import {
   createChangeDetector,
 } from '@/git';
 import { logger } from '@/utils/logger';
+import { normalizePath } from '@/utils/path';
 
 import type { OutputFormat } from '@/cli/output/formatters';
 import type { LintError } from '@/cli/output/reporters';
@@ -87,14 +91,6 @@ function formatGitError(error: GitError): string {
     msg += `\n  Path: ${error.context.path}`;
   }
   return msg;
-}
-
-/**
- * パスを正規化（バックスラッシュをフォワードスラッシュに変換）
- * Windows互換性のため
- */
-function normalizePath(filePath: string): string {
-  return filePath.replace(/\\/g, '/');
 }
 
 /**
@@ -226,6 +222,14 @@ function collectDocumentIssues(
 }
 
 /**
+ * インデックス検証結果
+ */
+interface IndexValidationOutput {
+  errors: LintError[];
+  indexByPath: Map<string, IndexEntry>;
+}
+
+/**
  * インデックス整合性を検証する
  */
 async function validateIndex(
@@ -233,7 +237,7 @@ async function validateIndex(
   indexFilePath: string,
   cwd: string,
   idField: string = 'doc_id'
-): Promise<LintError[]> {
+): Promise<IndexValidationOutput> {
   try {
     const indexFile = await loadIndexFile(indexFilePath, cwd, idField);
     const indexResult = validateIndexConsistency(
@@ -242,13 +246,19 @@ async function validateIndex(
       cwd,
       idField
     );
-    return indexResult.errors;
+    return {
+      errors: indexResult.errors,
+      indexByPath: indexResult.indexEntries,
+    };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unknown index error';
     console.error(`Error loading index: ${message}`);
     logger.warn('lint.index', 'Failed to load index file', { error: message });
-    return [];
+    return {
+      errors: [],
+      indexByPath: new Map(),
+    };
   }
 }
 
@@ -354,8 +364,11 @@ export async function executeLint(options: LintOptions): Promise<number> {
   }
 
   // 4. ドキュメントをスキャン
+  // content_integrity有効時はpreserveContent=trueでコンテンツを保持
+  const preserveContent = config.content_integrity?.enabled ?? false;
   const scanResult = await scanDocuments(config, {
     cwd,
+    preserveContent,
     ...(targetPaths ? { filterPaths: targetPaths } : {}),
   });
   logger.debug('lint.scan', 'Documents scanned', {
@@ -367,7 +380,71 @@ export async function executeLint(options: LintOptions): Promise<number> {
 
   // 6. インデックス整合性を検証
   const idField = config.id_field ?? 'doc_id';
-  const indexIssues = await validateIndex(scanResult, config.index_file, cwd, idField);
+  const indexValidationResult = await validateIndex(scanResult, config.index_file, cwd, idField);
+  const indexIssues = indexValidationResult.errors;
+
+  // 6.1 コンテンツ整合性を検証（content_integrity有効時）
+  let contentIssues: LintError[] = [];
+  const sourceRefIssues: LintError[] = [];
+  if (preserveContent) {
+    const contentValidationResult = validateContentIntegrity(
+      scanResult.documents,
+      indexValidationResult.indexByPath
+    );
+    contentIssues = contentValidationResult.errors;
+    logger.debug('lint.content', 'Content integrity checked', {
+      documentsChecked: scanResult.documents.filter((d) => d.content !== undefined).length,
+      issuesFound: contentIssues.length,
+    });
+
+    // 6.2 ソースコード参照警告（content_hash不一致がある場合）
+    if (
+      contentValidationResult.mismatchedDocIds.length > 0 &&
+      config.content_integrity?.source_references &&
+      config.content_integrity.source_references.length > 0
+    ) {
+      logger.debug('lint.source-refs', 'Scanning source references for mismatched docs', {
+        mismatchedCount: contentValidationResult.mismatchedDocIds.length,
+      });
+
+      const sourceRefResult = await scanSourceReferences(config, cwd);
+
+      // スキャンエラーをログ
+      for (const scanError of sourceRefResult.errors) {
+        logger.warn('lint.source-refs.scan', 'Source reference scan error', {
+          path: scanError.path,
+          message: scanError.message,
+        });
+      }
+
+      // content_hash不一致のdoc_idを参照しているソースファイルを抽出
+      const refsToMismatched = filterReferencesByDocIds(
+        sourceRefResult.references,
+        contentValidationResult.mismatchedDocIds
+      );
+
+      // 警告を生成
+      for (const ref of refsToMismatched) {
+        sourceRefIssues.push({
+          path: ref.sourcePath,
+          code: ShirushiErrors.CONTENT_CHANGED_WITH_SOURCE_REFS.code,
+          message: `Source file references ${ref.docId} which has content changes (line ${ref.lineNumber})`,
+          domain: ShirushiErrors.CONTENT_CHANGED_WITH_SOURCE_REFS.domain,
+          severity: ShirushiErrors.CONTENT_CHANGED_WITH_SOURCE_REFS.severity,
+          details: {
+            doc_id: ref.docId,
+            line_number: ref.lineNumber,
+            pattern_glob: ref.patternGlob,
+          },
+        });
+      }
+
+      logger.debug('lint.source-refs.result', 'Source reference warnings generated', {
+        totalReferences: sourceRefResult.references.length,
+        warningsGenerated: sourceRefIssues.length,
+      });
+    }
+  }
 
   // 7. Git差分でdoc_id変更を検出
   // --base 指定時、かつ以下のいずれかの場合に実行：
@@ -496,7 +573,7 @@ export async function executeLint(options: LintOptions): Promise<number> {
   }
 
   // 9. 結果を構築
-  const allIssues = [...documentIssues, ...indexIssues, ...gitIssues, ...referenceIssues];
+  const allIssues = [...documentIssues, ...indexIssues, ...contentIssues, ...sourceRefIssues, ...gitIssues, ...referenceIssues];
   const result = buildLintResult(allIssues);
 
   // 10. 出力

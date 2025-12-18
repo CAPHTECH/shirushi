@@ -28,6 +28,7 @@ import { acquireLock, releaseLock } from '@/core/lock';
 import { scanDocuments } from '@/core/scanner';
 import { validateDocId } from '@/core/validator';
 import { ShirushiErrors } from '@/errors/definitions';
+import { calculateContentHash } from '@/utils/content-hash';
 import { logger } from '@/utils/logger';
 
 import type { OutputFormat } from '@/cli/output/formatters';
@@ -146,7 +147,9 @@ async function executeAssignInternal(
   const indexEntries = indexFile?.documents ?? [];
 
   // 3. ドキュメントをスキャン
-  const scanResult = await scanDocuments(config, { cwd });
+  // content_integrity有効時はpreserveContent=trueでコンテンツを保持
+  const preserveContent = config.content_integrity?.enabled ?? false;
+  const scanResult = await scanDocuments(config, { cwd, preserveContent });
   logger.debug('assign.scan', 'Documents scanned', {
     count: scanResult.documents.length,
   });
@@ -261,6 +264,10 @@ async function executeAssignInternal(
     }
     if (typeof doc.metadata.doc_type === 'string') {
       indexEntry.docType = doc.metadata.doc_type;
+    }
+    // content_integrity有効時はコンテンツハッシュを追加
+    if (doc.content !== undefined) {
+      indexEntry.contentHash = calculateContentHash(doc.content);
     }
     newIndexEntries.push(indexEntry);
   }

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Shirushi (標 - "mark" in Japanese) is a document ID management and validation system for Git repositories. It ensures consistent, immutable document IDs across Markdown and YAML files, with CI integration to detect ID tampering, duplication, or missing IDs.
 
-**Current Status**: v0.1.0 - Documentation phase complete, implementation not yet started.
+**Current Status**: v0.2.0 - Core implementation complete, including content integrity validation.
 
 GitHub: CAPHTECH/shirushi
 
@@ -48,6 +48,14 @@ pnpm shirushi:lint    # Run Shirushi on itself
 pnpm shirushi:scan    # Scan Shirushi's own docs
 ```
 
+### CLI Commands
+```bash
+shirushi lint          # Validate documents and index
+shirushi scan          # List documents with metadata
+shirushi assign        # Assign IDs to new documents
+shirushi rehash        # Recalculate content hashes
+```
+
 ## Architecture
 
 ### Layered Architecture
@@ -76,12 +84,12 @@ Critical decisions documented in `docs/adr/`:
 6. **ADR-0006**: No gap validation for serial numbers (operational flexibility)
 7. **ADR-0007**: Manual index synchronization only (`lint` is read-only)
 
-### Planned Directory Structure
+### Directory Structure
 
 ```
 src/
-├── cli/              # CLI commands (lint, scan)
-├── core/             # Validation, scanning, ID generation
+├── cli/              # CLI commands (lint, scan, assign, rehash)
+├── core/             # Validation, scanning, ID generation, content integrity
 ├── dimensions/       # Dimension type handlers
 │   └── handlers/     # enum, year, serial, checksum
 ├── parsers/          # Markdown, YAML, template parsers
@@ -89,7 +97,7 @@ src/
 ├── git/              # Git operations and diff detection
 ├── errors/           # Error classes and codes
 ├── types/            # TypeScript type definitions
-└── utils/            # Logging, glob, regex utilities
+└── utils/            # Logging, glob, regex, content-hash, path utilities
 ```
 
 ## Core Concepts
@@ -158,16 +166,18 @@ Both documents and index file use the same configured field name.
 - Mismatches are reported as `DOC_ID_MISMATCH_WITH_INDEX`
 - Index sync is manual (ADR-0007), not automatic
 
-## v0.1 Scope
+## Implementation Status
 
-**Implemented**:
+### v0.1 (Released)
 - `shirushi lint` - Validation command (read-only)
 - `shirushi scan` - Document listing
-- Core ID generation logic (internal, not CLI-exposed)
+- Core ID generation logic
 
-**Deferred to v0.2** (ADR-0005):
+### v0.2 (Current)
 - `shirushi assign` - Automatic ID assignment
-- `shirushi index sync` - Index synchronization
+- `shirushi rehash` - Content hash recalculation
+- Content integrity validation with SHA-256
+- Source reference detection and warnings
 
 ## TypeScript Patterns
 

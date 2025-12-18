@@ -17,6 +17,7 @@ import { logger } from '../utils/logger.js';
 
 import { registerAssignCommand } from './commands/assign.js';
 import { registerLintCommand } from './commands/lint.js';
+import { registerRehashCommand } from './commands/rehash.js';
 import { registerScanCommand } from './commands/scan.js';
 
 // package.jsonからバージョンを取得（ビルド時に解決される）
@@ -38,6 +39,7 @@ function createProgram(): Command {
   // サブコマンドを登録
   registerAssignCommand(program);
   registerLintCommand(program);
+  registerRehashCommand(program);
   registerScanCommand(program);
 
   return program;
