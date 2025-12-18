@@ -294,6 +294,13 @@ export const ShirushiErrors = {
     severity: ErrorSeverity.Error,
     description: 'The generated doc_id does not pass validation checks.',
   },
+  DIMENSION_HANDLER_CRASH: {
+    code: 'DIMENSION_HANDLER_CRASH',
+    message: 'Dimension handler threw an exception',
+    domain: LawDomain.System,
+    severity: ErrorSeverity.Error,
+    description: 'An unexpected error occurred in a dimension handler during ID generation.',
+  },
 } as const;
 
 export type ShirushiErrorCode = keyof typeof ShirushiErrors;
