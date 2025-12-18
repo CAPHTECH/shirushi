@@ -1,3 +1,6 @@
+---
+doc_id: SHI-SPEC-2025-0003-N
+---
 # Plugin Development Guide
 
 This guide explains how to create plugins for Shirushi. Plugins allow you to extend Shirushi's capabilities by implementing custom document sources, index stores, and change trackers.

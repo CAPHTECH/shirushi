@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-ADR-2025-0008
+doc_id: SHI-ADR-2025-0008-M
 title: "ADR-0008: Plugin Architecture for External System Integration"
 version: "0.1.0"
 status: Accepted

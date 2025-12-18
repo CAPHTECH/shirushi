@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-FORMAL-2025-0004
+doc_id: SHI-FORMAL-2025-0004-I
 title: Formal Verification CI Integration Design
 version: "0.1.0"
 status: Draft

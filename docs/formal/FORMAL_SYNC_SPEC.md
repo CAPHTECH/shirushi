@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-FORMAL-2025-0003
+doc_id: SHI-FORMAL-2025-0003-H
 title: "shirushi formal-sync 仕様"
 version: "0.1.0"
 status: Draft

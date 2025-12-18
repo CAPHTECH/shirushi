@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-ADR-2025-0003
+doc_id: SHI-ADR-2025-0003-H
 title: "ADR-0003: Document is Source of Truth for doc_id"
 version: "1.0.0"
 status: Accepted

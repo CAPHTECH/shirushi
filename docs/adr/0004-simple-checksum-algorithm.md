@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-ADR-2025-0004
+doc_id: SHI-ADR-2025-0004-I
 title: "ADR-0004: Use Simple mod26AZ Checksum Algorithm"
 version: "1.0.0"
 status: Accepted

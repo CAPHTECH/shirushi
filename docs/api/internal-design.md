@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-INT-2025-0001
+doc_id: SHI-INT-2025-0001-Z
 title: Shirushi Internal Design
 version: "0.1.0"
 status: Draft

@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-USER-2025-0001
+doc_id: SHI-USER-2025-0001-F
 title: Shirushi User Guide
 version: "0.1.0"
 status: Draft

@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-GUIDE-2025-0001
+doc_id: SHI-GUIDE-2025-0001-A
 title: Shirushi Developer Guide
 version: "0.1.0"
 status: Draft

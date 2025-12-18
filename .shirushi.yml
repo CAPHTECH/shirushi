@@ -16,9 +16,9 @@ index_file: "docs/doc_index.yaml"
 # Field name for document ID in YAML frontmatter
 id_field: "doc_id"
 
-# ID Format: SHI-KIND-YEAR4-SER4
-# Example: SHI-SPEC-2025-0001
-id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}"
+# ID Format: SHI-KIND-YEAR4-SER4-CHK1
+# Example: SHI-SPEC-2025-0001-Q
+id_format: "{COMP}-{KIND}-{YEAR4}-{SER4}-{CHK1}"
 
 # Dimension definitions
 dimensions:
@@ -51,6 +51,12 @@ dimensions:
     digits: 4
     scope: ["KIND", "YEAR4"]
 
+  # Checksum (1 character, mod26AZ algorithm)
+  CHK1:
+    type: checksum
+    algo: "mod26AZ"
+    of: ["COMP", "KIND", "YEAR4", "SER4"]
+
 # Validation rules
 forbid_id_change: true                  # Prevent changing existing IDs
 allow_missing_id_in_new_files: false    # All documents must have IDs
@@ -59,3 +65,13 @@ allow_missing_id_in_new_files: false    # All documents must have IDs
 content_integrity:
   enabled: true
   algorithm: sha256
+  source_references:
+    # JSDoc @see tags referencing doc_ids
+    - glob: "src/**/*.ts"
+      pattern: "@see\\s+({DOC_ID})"
+    # Explicit doc_id reference comments
+    - glob: "src/**/*.ts"
+      pattern: "// ref:\\s*({DOC_ID})"
+    # Test files referencing doc_ids
+    - glob: "tests/**/*.ts"
+      pattern: "({DOC_ID})"

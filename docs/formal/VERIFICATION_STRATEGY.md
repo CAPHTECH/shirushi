@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-FORMAL-2025-0002
+doc_id: SHI-FORMAL-2025-0002-G
 title: Shirushi Formal Verification Strategy
 version: "0.1.0"
 status: Draft
