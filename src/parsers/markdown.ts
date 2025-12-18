@@ -16,21 +16,24 @@ const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
 
 export async function parseMarkdownFile(
   path: string,
-  idField: string = 'doc_id'
+  idField: string = 'doc_id',
+  preserveContent: boolean = false
 ): Promise<DocumentParseResult> {
   const file = await readFile(path, 'utf8');
-  return parseMarkdownContent(path, file, idField);
+  return parseMarkdownContent(path, file, idField, preserveContent);
 }
 
 export function parseMarkdownContent(
   path: string,
   content: string,
-  idField: string = 'doc_id'
+  idField: string = 'doc_id',
+  preserveContent: boolean = false
 ): DocumentParseResult {
   const sanitizedContent = normalizeFrontMatterSource(content);
   const problems: DocumentProblem[] = [];
   let docId: string | undefined;
   let metadata: Record<string, unknown> = {};
+  let bodyContent: string | undefined;
 
   try {
     const parsed = matter(sanitizedContent, {
@@ -43,6 +46,11 @@ export function parseMarkdownContent(
     });
     const data = (parsed.data ?? {}) as Record<string, unknown>;
     metadata = normalizeMetadata(data, idField);
+
+    // content_integrity用に本文を保持
+    if (preserveContent) {
+      bodyContent = parsed.content;
+    }
 
     const docIdOccurrences = countDocIdDirectives(parsed.matter, idField);
     if (docIdOccurrences === 0) {
@@ -76,6 +84,7 @@ export function parseMarkdownContent(
     docId,
     metadata,
     problems,
+    ...(bodyContent !== undefined ? { content: bodyContent } : {}),
   };
 }
 

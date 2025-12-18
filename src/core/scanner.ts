@@ -55,6 +55,8 @@ export interface ScanOptions {
   cwd?: string;
   /** 特定のファイルのみをスキャン（フィルタリング用） */
   filterPaths?: string[];
+  /** ドキュメント本文を保持（content_integrity検証用） */
+  preserveContent?: boolean;
 }
 
 /**
@@ -72,11 +74,13 @@ function getDocumentKind(filePath: string): 'markdown' | 'yaml' | null {
  * @param filePath - ファイルパス
  * @param cwd - ベースディレクトリ
  * @param idField - IDフィールド名（デフォルト: 'doc_id'）
+ * @param preserveContent - ドキュメント本文を保持するか（デフォルト: false）
  */
 async function parseDocument(
   filePath: string,
   cwd: string,
-  idField: string = 'doc_id'
+  idField: string = 'doc_id',
+  preserveContent: boolean = false
 ): Promise<DocumentParseResult | null> {
   const kind = getDocumentKind(filePath);
   if (!kind) return null;
@@ -87,11 +91,11 @@ async function parseDocument(
   const relativePath = path.relative(cwd, absolutePath);
 
   if (kind === 'markdown') {
-    const result = await parseMarkdownFile(absolutePath, idField);
+    const result = await parseMarkdownFile(absolutePath, idField, preserveContent);
     // 相対パスに正規化
     return { ...result, path: relativePath };
   } else {
-    const result = await parseYamlFile(absolutePath, idField);
+    const result = await parseYamlFile(absolutePath, idField, preserveContent);
     return { ...result, path: relativePath };
   }
 }
@@ -120,6 +124,7 @@ export async function scanDocuments(
 ): Promise<ScanResult> {
   const cwd = options.cwd ?? process.cwd();
   const idField = config.id_field ?? 'doc_id';
+  const preserveContent = options.preserveContent ?? false;
 
   // fast-globで対象ファイルを探索
   const files = await fg(config.doc_globs, {
@@ -136,7 +141,9 @@ export async function scanDocuments(
     : files;
 
   // 各ファイルを並列でパース
-  const parsePromises = targetFiles.map((file) => parseDocument(file, cwd, idField));
+  const parsePromises = targetFiles.map((file) =>
+    parseDocument(file, cwd, idField, preserveContent)
+  );
   const results = await Promise.all(parsePromises);
 
   // nullを除外（サポート外拡張子）
@@ -195,10 +202,13 @@ function calculateSummary(documents: DocumentParseResult[]): ScanSummary {
 export async function scanSpecificPaths(
   paths: string[],
   config: ShirushiConfig,
-  cwd: string = process.cwd()
+  cwd: string = process.cwd(),
+  preserveContent: boolean = false
 ): Promise<ScanResult> {
   const idField = config.id_field ?? 'doc_id';
-  const parsePromises = paths.map((file) => parseDocument(file, cwd, idField));
+  const parsePromises = paths.map((file) =>
+    parseDocument(file, cwd, idField, preserveContent)
+  );
   const results = await Promise.all(parsePromises);
 
   const documents = results.filter(

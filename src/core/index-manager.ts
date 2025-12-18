@@ -14,12 +14,12 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { posix } from 'node:path';
 
 import yaml, { JSON_SCHEMA } from 'js-yaml';
 import { z } from 'zod';
 
 import { ShirushiErrors } from '@/errors/definitions';
+import { normalizePath } from '@/utils/path';
 
 import type { LintError } from '@/cli/output/reporters';
 import type { DocumentParseResult } from '@/types/document';
@@ -38,6 +38,7 @@ export function createIndexEntrySchema(idField: string = 'doc_id') {
     version: z.string().optional(),
     owner: z.string().optional(),
     tags: z.array(z.string()).optional(),
+    content_hash: z.string().length(64).optional(), // SHA-256 hex (64 chars)
   });
 }
 
@@ -66,6 +67,7 @@ export interface IndexEntry {
   version?: string;
   owner?: string;
   tags?: string[];
+  content_hash?: string; // SHA-256 hash of document content
   [key: string]: string | string[] | undefined; // 動的なidフィールドやカスタムフィールド
 }
 
@@ -86,14 +88,6 @@ export interface IndexValidationResult {
 }
 
 const YAML_OPTIONS = { schema: JSON_SCHEMA, json: true } as const;
-
-/**
- * パスをPOSIX形式（フォワードスラッシュ）に正規化
- * Windows互換性のため
- */
-function normalizePath(filePath: string): string {
-  return filePath.split(path.sep).join(posix.sep);
-}
 
 /**
  * IndexEntryから指定されたIDフィールドの値を安全に取得

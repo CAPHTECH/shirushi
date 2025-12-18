@@ -76,6 +76,33 @@ export const ReferencePatternSchema = z.object({
   pattern: z.string().min(1),
 });
 
+/**
+ * ソースコード参照パターン定義スキーマ
+ *
+ * ソースコード内でドキュメントを参照しているパターンを検出する。
+ * pattern内の {DOC_ID} は id_format から生成される正規表現パターンに展開される。
+ */
+export const SourceReferencePatternSchema = z.object({
+  /** 対象ファイルのglobパターン */
+  glob: z.string().min(1),
+  /** 正規表現パターン。{DOC_ID} をプレースホルダーとして使用可能 */
+  pattern: z.string().min(1),
+});
+
+/**
+ * コンテンツ整合性設定スキーマ
+ *
+ * ドキュメント本文のハッシュを計算・検証し、改ざんを検出する。
+ */
+export const ContentIntegritySchema = z.object({
+  /** コンテンツ整合性チェックを有効化 */
+  enabled: z.boolean().default(false),
+  /** ハッシュアルゴリズム（現在はsha256のみ） */
+  algorithm: z.enum(['sha256']).default('sha256'),
+  /** ソースコード内の参照を検出するパターン */
+  source_references: z.array(SourceReferencePatternSchema).optional(),
+});
+
 export const ConfigSchema = z
   .object({
     id_format: z.string().min(1, 'id_format must not be empty'),
@@ -108,6 +135,12 @@ export const ConfigSchema = z
     reference_patterns: z
       .array(ReferencePatternSchema)
       .default([{ name: 'markdown_link', pattern: '\\[.*?\\]\\({DOC_ID}\\)' }]),
+
+    /**
+     * コンテンツ整合性チェック設定
+     * ドキュメント本文のハッシュを検証し、改ざんを検出する。
+     */
+    content_integrity: ContentIntegritySchema.optional(),
   })
   .superRefine((config, ctx) => {
     const placeholders = extractTemplatePlaceholders(config.id_format);

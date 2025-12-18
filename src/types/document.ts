@@ -34,4 +34,6 @@ export interface DocumentParseResult {
   docId?: string | undefined;
   metadata: DocumentMetadata;
   problems: DocumentProblem[];
+  /** ドキュメント本文（content_integrity有効時のみ） */
+  content?: string;
 }

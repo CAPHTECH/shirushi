@@ -7,19 +7,12 @@
 
 import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import path, { posix } from 'node:path';
+import path from 'node:path';
 
 import { type Either, left, right } from 'fp-ts/Either';
 import yaml, { JSON_SCHEMA } from 'js-yaml';
 
-/**
- * パスをPOSIX形式（フォワードスラッシュ）に正規化
- * Windows互換性のため
- */
-function normalizePath(filePath: string): string {
-  return filePath.split(path.sep).join(posix.sep);
-}
-
+import { normalizePath } from '@/utils/path';
 
 import type { IndexEntry, IndexFile } from '@/core/index-manager';
 
@@ -42,6 +35,7 @@ export interface NewIndexEntry {
   path: string;
   title?: string;
   docType?: string;
+  contentHash?: string; // SHA-256 hash of document content
 }
 
 /**
@@ -88,6 +82,7 @@ export async function appendToIndex(
         path: normalizePath(entry.path), // Windows互換性のため正規化
         ...(entry.title ? { title: entry.title } : {}),
         ...(entry.docType ? { doc_type: entry.docType } : {}),
+        ...(entry.contentHash ? { content_hash: entry.contentHash } : {}),
       };
       indexFile.documents.push(newEntry);
     }

@@ -301,6 +301,32 @@ export const ShirushiErrors = {
     severity: ErrorSeverity.Error,
     description: 'An unexpected error occurred in a dimension handler during ID generation.',
   },
+
+  // Content Integrity Domain (コンテンツ整合性検証)
+  CONTENT_HASH_MISMATCH: {
+    code: 'CONTENT_HASH_MISMATCH',
+    message: 'Document content hash does not match index',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description:
+      'The SHA-256 hash of document body differs from stored hash in index.',
+  },
+  MISSING_CONTENT_HASH: {
+    code: 'MISSING_CONTENT_HASH',
+    message: 'Content hash is missing in index entry',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Warning,
+    description:
+      'Index entry does not have a content_hash field when content integrity is enabled.',
+  },
+  CONTENT_CHANGED_WITH_SOURCE_REFS: {
+    code: 'CONTENT_CHANGED_WITH_SOURCE_REFS',
+    message: 'Document content changed; source files referencing this document may need review',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Warning,
+    description:
+      'Document content has changed and source files reference this document via @see or similar patterns.',
+  },
 } as const;
 
 export type ShirushiErrorCode = keyof typeof ShirushiErrors;
