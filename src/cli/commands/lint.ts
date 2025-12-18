@@ -385,7 +385,7 @@ export async function executeLint(options: LintOptions): Promise<number> {
 
   // 6.1 コンテンツ整合性を検証（content_integrity有効時）
   let contentIssues: LintError[] = [];
-  let sourceRefIssues: LintError[] = [];
+  const sourceRefIssues: LintError[] = [];
   if (preserveContent) {
     const contentValidationResult = validateContentIntegrity(
       scanResult.documents,

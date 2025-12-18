@@ -2,9 +2,11 @@
  * Content Integrity Integration Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, writeFile, rm, readFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { executeLint } from '@/cli/commands/lint';
 import { executeRehash } from '@/cli/commands/rehash';
 import { calculateContentHash } from '@/utils/content-hash';

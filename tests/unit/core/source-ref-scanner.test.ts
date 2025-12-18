@@ -2,10 +2,13 @@
  * Source Reference Scanner Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { scanSourceReferences, filterReferencesByDocIds } from '@/core/source-ref-scanner';
+
 import type { ShirushiConfig } from '@/config/schema';
 import type { SourceReference } from '@/core/source-ref-scanner';
 

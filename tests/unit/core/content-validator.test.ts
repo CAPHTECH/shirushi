@@ -3,10 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
+
 import { validateContentIntegrity } from '@/core/content-validator';
 import { calculateContentHash } from '@/utils/content-hash';
-import type { DocumentParseResult } from '@/types/document';
+
 import type { IndexEntry } from '@/core/index-manager';
+import type { DocumentParseResult } from '@/types/document';
 
 describe('content-validator', () => {
   describe('validateContentIntegrity', () => {

@@ -2,9 +2,11 @@
  * YAML Parser Tests (preserveContent functionality)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { parseYamlFile, parseYamlContent } from '@/parsers/yaml';
 
 const TEST_DIR = path.join(process.cwd(), 'tests', '.tmp', 'yaml-parser');

@@ -2,9 +2,11 @@
  * Markdown Parser Tests (preserveContent functionality)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 import { parseMarkdownFile, parseMarkdownContent } from '@/parsers/markdown';
 
 const TEST_DIR = path.join(process.cwd(), 'tests', '.tmp', 'markdown-parser');
