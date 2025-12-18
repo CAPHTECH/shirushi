@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-FORMAL-2025-0001
+doc_id: SHI-FORMAL-2025-0001-F
 title: Shirushi Formal Specifications
 version: "0.1.0"
 status: Draft

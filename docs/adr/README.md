@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-ADR-2025-0100
+doc_id: SHI-ADR-2025-0100-F
 title: Architecture Decision Records (ADRs)
 version: "0.1.0"
 status: Draft

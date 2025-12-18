@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-SPEC-2025-0001
+doc_id: SHI-SPEC-2025-0001-L
 title: Shirushi 仕様書
 version: "0.1.0"
 status: Draft

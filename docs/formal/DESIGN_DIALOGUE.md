@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-FORMAL-2025-0005
+doc_id: SHI-FORMAL-2025-0005-J
 title: 2025-11-19 アーキテクチャ設計レビュー対話ログ
 version: "0.1.0"
 status: Draft

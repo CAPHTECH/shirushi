@@ -117,7 +117,6 @@ jobs:
 
       - name: Run Shirushi on itself
         run: node dist/cli/index.js lint
-        continue-on-error: true  # Don't fail if we don't have docs yet
 
   # Mutation testing (optional, only on main)
   mutation:

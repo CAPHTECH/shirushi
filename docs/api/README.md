@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-API-2025-0002
+doc_id: SHI-API-2025-0002-J
 title: Shirushi API Documentation
 version: "0.1.0"
 status: Draft

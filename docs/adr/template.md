@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-ADR-2025-0101
+doc_id: SHI-ADR-2025-0101-G
 title: "ADR-XXXX: Template"
 version: "0.1.0"
 status: Draft
