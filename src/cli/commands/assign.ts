@@ -24,13 +24,13 @@ import {
 } from '@/core/assign-transaction';
 import { generateDocId } from '@/core/generator';
 import { loadIndexFile } from '@/core/index-manager';
+import { acquireLock, releaseLock } from '@/core/lock';
 import { scanDocuments } from '@/core/scanner';
 import { validateDocId } from '@/core/validator';
 import { ShirushiErrors } from '@/errors/definitions';
 import { logger } from '@/utils/logger';
 
 import type { OutputFormat } from '@/cli/output/formatters';
-import type { IndexEntry } from '@/core/index-manager';
 import type { NewIndexEntry } from '@/core/index-writer';
 import type { Command } from 'commander';
 
@@ -98,6 +98,34 @@ export async function executeAssign(options: AssignOptions): Promise<number> {
 
   logger.debug('assign.start', 'Starting assign command', { options });
 
+  // 0. ロックを取得（dry-runでなければ）
+  if (!dryRun) {
+    const lockResult = acquireLock(cwd, 'assign');
+    if (isLeft(lockResult)) {
+      console.error(`Error: ${lockResult.left.message}`);
+      return 1;
+    }
+  }
+
+  try {
+    return await executeAssignInternal(options, cwd, format, dryRun);
+  } finally {
+    // ロックを解放（dry-runでなければ）
+    if (!dryRun) {
+      releaseLock(cwd);
+    }
+  }
+}
+
+/**
+ * assignコマンドの内部実装
+ */
+async function executeAssignInternal(
+  options: AssignOptions,
+  cwd: string,
+  format: OutputFormat,
+  dryRun: boolean
+): Promise<number> {
   // 1. 設定を読み込み
   const loaded = await loadConfigForCommand(options.config, cwd, 'assign');
   if (!loaded) {
@@ -214,7 +242,7 @@ export async function executeAssign(options: AssignOptions): Promise<number> {
       [idField]: docId,
       path: doc.path,
     };
-    workingIndexEntries.push(newEntry as IndexEntry);
+    workingIndexEntries.push(newEntry);
 
     // インデックス更新用エントリを準備
     const indexEntry: NewIndexEntry = {

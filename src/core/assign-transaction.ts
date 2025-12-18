@@ -11,6 +11,9 @@
  * 3. 完了フェーズ: 成功時はそのまま終了、失敗時はロールバック
  */
 
+import { existsSync, unlinkSync } from 'node:fs';
+import path from 'node:path';
+
 import { type Either, isLeft, left, right } from 'fp-ts/Either';
 
 import {
@@ -240,8 +243,9 @@ export async function rollback(
     }
   }
 
-  // インデックスを復元（バックアップがある場合のみ）
+  // インデックスを復元または削除
   if (context.indexBackup !== null) {
+    // 既存ファイルの復元
     const indexResult = await writeIndexContent(
       context.indexPath,
       context.indexBackup,
@@ -252,6 +256,25 @@ export async function rollback(
       logger.error('assign.rollback', 'Failed to restore index', {
         error: indexResult.left.message,
       });
+    }
+  } else {
+    // 新規作成されたインデックスファイルを削除
+    const absolutePath = path.isAbsolute(context.indexPath)
+      ? context.indexPath
+      : path.join(context.cwd, context.indexPath);
+    if (existsSync(absolutePath)) {
+      try {
+        unlinkSync(absolutePath);
+        logger.debug('assign.rollback', 'Removed newly created index file', {
+          path: absolutePath,
+        });
+      } catch (e) {
+        failedPaths.push(absolutePath);
+        logger.error('assign.rollback', 'Failed to remove newly created index', {
+          path: absolutePath,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
     }
   }
 

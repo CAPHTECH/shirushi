@@ -502,4 +502,97 @@ documents: []
       expect(output).toHaveProperty('summary');
     }
   });
+
+  it('should acquire and release lock correctly', async () => {
+    const configContent = `
+doc_globs:
+  - "docs/**/*.md"
+index_file: "docs/doc_index.yaml"
+id_format: "{TYPE}-{NUM}"
+dimensions:
+  TYPE:
+    type: enum
+    values: ["DOC"]
+  NUM:
+    type: serial
+    digits: 4
+    scope: ["TYPE"]
+`;
+    await writeFile(path.join(TEST_DIR, '.shirushi.yml'), configContent);
+
+    // doc_idなしのドキュメント
+    const doc = `---
+title: New Document
+---
+
+# New
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/new.md'), doc);
+
+    // 空のインデックス
+    const indexContent = `
+documents: []
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/doc_index.yaml'), indexContent);
+
+    // 実行後、ロックファイルが残っていないことを確認
+    const { existsSync } = await import('node:fs');
+    const lockPath = path.join(TEST_DIR, '.shirushi.lock');
+
+    const exitCode = await executeAssign({
+      cwd: TEST_DIR,
+      config: '.shirushi.yml',
+    });
+
+    expect(exitCode).toBe(0);
+    expect(existsSync(lockPath)).toBe(false);
+  });
+
+  it('should not create lock file in dry-run mode', async () => {
+    const configContent = `
+doc_globs:
+  - "docs/**/*.md"
+index_file: "docs/doc_index.yaml"
+id_format: "{TYPE}-{NUM}"
+dimensions:
+  TYPE:
+    type: enum
+    values: ["DOC"]
+  NUM:
+    type: serial
+    digits: 4
+    scope: ["TYPE"]
+`;
+    await writeFile(path.join(TEST_DIR, '.shirushi.yml'), configContent);
+
+    const doc = `---
+title: New Document
+---
+
+# New
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/new.md'), doc);
+
+    const indexContent = `
+documents: []
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/doc_index.yaml'), indexContent);
+
+    const { existsSync } = await import('node:fs');
+    const lockPath = path.join(TEST_DIR, '.shirushi.lock');
+
+    // dry-runではロックファイルを作成しない
+    const exitCode = await executeAssign({
+      cwd: TEST_DIR,
+      config: '.shirushi.yml',
+      dryRun: true,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(existsSync(lockPath)).toBe(false);
+
+    // ファイルが変更されていないことも確認
+    const content = await readFile(path.join(TEST_DIR, 'docs/new.md'), 'utf8');
+    expect(content).not.toContain('doc_id');
+  });
 });
