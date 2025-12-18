@@ -20,6 +20,7 @@ import {
   prepareIndexBackup,
   applyChanges,
   applyIndexUpdate,
+  rollback,
 } from '@/core/assign-transaction';
 import { generateDocId } from '@/core/generator';
 import { loadIndexFile } from '@/core/index-manager';
@@ -250,10 +251,14 @@ export async function executeAssign(options: AssignOptions): Promise<number> {
       // インデックスを更新
       const indexResult = await applyIndexUpdate(txContext, newIndexEntries);
       if (isLeft(indexResult)) {
+        // インデックス更新失敗時、ドキュメント変更もロールバック
+        logger.warn('assign.execute', 'Index update failed, rolling back document changes');
+        await rollback(txContext);
+
         result.errors.push({
           path: config.index_file,
           code: indexResult.left.code,
-          message: indexResult.left.message,
+          message: `Index update failed, all changes rolled back: ${indexResult.left.message}`,
         });
         // ロールバック済みなので、assigned をクリア
         result.assigned = [];

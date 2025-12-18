@@ -152,11 +152,19 @@ function generateParts(
       idField,
     };
 
-    const result = handler.generate(dimension, context);
-    if (isLeft(result)) {
-      errors.push(result.left);
-    } else {
-      parts[placeholder.name] = result.right;
+    try {
+      const result = handler.generate(dimension, context);
+      if (isLeft(result)) {
+        errors.push(result.left);
+      } else {
+        parts[placeholder.name] = result.right;
+      }
+    } catch (e) {
+      errors.push({
+        code: 'DIMENSION_HANDLER_CRASH',
+        message: `Handler for "${placeholder.name}" threw: ${e instanceof Error ? e.message : String(e)}`,
+        dimensionName: placeholder.name,
+      });
     }
   }
 
@@ -178,11 +186,19 @@ function generateParts(
       dimensionName: name,
     };
 
-    const result = handler.generate(dimension, context);
-    if (isLeft(result)) {
-      errors.push(result.left);
-    } else {
-      parts[name] = result.right;
+    try {
+      const result = handler.generate(dimension, context);
+      if (isLeft(result)) {
+        errors.push(result.left);
+      } else {
+        parts[name] = result.right;
+      }
+    } catch (e) {
+      errors.push({
+        code: 'DIMENSION_HANDLER_CRASH',
+        message: `Handler for "${name}" threw: ${e instanceof Error ? e.message : String(e)}`,
+        dimensionName: name,
+      });
     }
   }
 

@@ -91,22 +91,10 @@ function writeDocIdToMarkdown(
 ): string {
   const parsed = matter(content);
 
-  // idFieldを先頭に配置（既存の順序を維持しつつ）
-  const newData = {
-    [idField]: docId,
-    ...parsed.data,
-  };
-  // 既存のidFieldを削除して先頭に配置したものを使用
-  delete newData[idField];
-  newData[idField] = docId;
-
-  // front matterでidFieldを先頭に配置するためにオブジェクトを再構築
-  const orderedData: Record<string, unknown> = { [idField]: docId };
-  for (const [key, value] of Object.entries(parsed.data)) {
-    if (key !== idField) {
-      orderedData[key] = value;
-    }
-  }
+  // idFieldを先頭に配置（既存のidFieldは除外してspreadで再構築）
+   
+  const { [idField]: _, ...restData } = parsed.data;
+  const orderedData = { [idField]: docId, ...restData };
 
   return matter.stringify(parsed.content, orderedData);
 }

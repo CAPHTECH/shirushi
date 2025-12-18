@@ -240,8 +240,8 @@ export async function rollback(
     }
   }
 
-  // インデックスを復元
-  if (context.indexBackup !== null || context.appliedPaths.size > 0) {
+  // インデックスを復元（バックアップがある場合のみ）
+  if (context.indexBackup !== null) {
     const indexResult = await writeIndexContent(
       context.indexPath,
       context.indexBackup,
