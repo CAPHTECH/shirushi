@@ -595,4 +595,49 @@ documents: []
     const content = await readFile(path.join(TEST_DIR, 'docs/new.md'), 'utf8');
     expect(content).not.toContain('doc_id');
   });
+
+  it('should return 1 when index file is corrupted', async () => {
+    const configContent = `
+doc_globs:
+  - "docs/**/*.md"
+index_file: "docs/doc_index.yaml"
+id_format: "{TYPE}-{NUM}"
+dimensions:
+  TYPE:
+    type: enum
+    values: ["DOC"]
+  NUM:
+    type: serial
+    digits: 4
+    scope: ["TYPE"]
+`;
+    await writeFile(path.join(TEST_DIR, '.shirushi.yml'), configContent);
+
+    // doc_idなしのドキュメント
+    const doc = `---
+title: New Document
+---
+
+# New
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/new.md'), doc);
+
+    // 壊れたインデックスファイル（無効なYAML構造）
+    const corruptedIndex = `
+documents:
+  - doc_id: DOC-0001
+    path: 123  # pathは文字列であるべき
+  invalid_key
+`;
+    await writeFile(path.join(TEST_DIR, 'docs/doc_index.yaml'), corruptedIndex);
+
+    const exitCode = await executeAssign({
+      cwd: TEST_DIR,
+      config: '.shirushi.yml',
+    });
+
+    // インデックスエラーで終了コード1
+    expect(exitCode).toBe(1);
+    expect(console.error).toHaveBeenCalled();
+  });
 });

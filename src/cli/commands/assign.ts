@@ -135,7 +135,14 @@ async function executeAssignInternal(
 
   // 2. インデックスを読み込み
   const idField = config.id_field ?? 'doc_id';
-  const indexFile = await loadIndexFile(config.index_file, cwd, idField);
+  let indexFile;
+  try {
+    indexFile = await loadIndexFile(config.index_file, cwd, idField);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Error loading index: ${message}`);
+    return 1;
+  }
   const indexEntries = indexFile?.documents ?? [];
 
   // 3. ドキュメントをスキャン

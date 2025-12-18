@@ -167,7 +167,16 @@ export async function applyChanges(
         path: filePath,
         error: result.left.message,
       });
-      await rollback(context);
+      const rollbackResult = await rollback(context);
+      if (isLeft(rollbackResult)) {
+        logger.error('assign.transaction', 'Rollback failed', {
+          failedPaths: rollbackResult.left.failedPaths,
+        });
+        return left({
+          ...result.left,
+          message: `${result.left.message}. CRITICAL: Rollback also failed for ${rollbackResult.left.failedPaths.length} file(s): ${rollbackResult.left.failedPaths.join(', ')}`,
+        });
+      }
       return result;
     }
 
@@ -200,7 +209,16 @@ export async function applyIndexUpdate(
     logger.warn('assign.transaction', 'Index update failed, initiating rollback', {
       error: result.left.message,
     });
-    await rollback(context);
+    const rollbackResult = await rollback(context);
+    if (isLeft(rollbackResult)) {
+      logger.error('assign.transaction', 'Rollback failed', {
+        failedPaths: rollbackResult.left.failedPaths,
+      });
+      return left({
+        ...result.left,
+        message: `${result.left.message}. CRITICAL: Rollback also failed for ${rollbackResult.left.failedPaths.length} file(s): ${rollbackResult.left.failedPaths.join(', ')}`,
+      });
+    }
     return result;
   }
 
