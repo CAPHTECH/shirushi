@@ -5,10 +5,13 @@
  * ベースrefと現在のHEADを比較して、doc_idの変更を特定する。
  *
  * LDE準拠: Either型で成功/失敗を表現
+ *
+ * ADR-0009: forbid_id_change比較時にチェックサムを除外
  */
 
 import { isLeft, right, type Either } from 'fp-ts/Either';
 
+import { stripChecksumFromDocId } from '@/core/checksum-validator';
 import { parseMarkdownContent } from '@/parsers/markdown';
 import { parseYamlContent } from '@/parsers/yaml';
 
@@ -17,7 +20,8 @@ import type {
   DetectionTarget,
   GitError,
   GitOperations,
-} from './types';
+} from './types.js';
+import type { ShirushiConfig } from '@/config/schema';
 
 /**
  * 単一ファイルの変更検出結果（内部用）
@@ -40,11 +44,14 @@ interface SingleFileChange {
  *
  * GitOperationsを使用してdoc_id変更を検出する。
  * 依存性注入により、テスト時にモック実装を注入可能。
+ *
+ * ADR-0009: forbid_id_change比較時にチェックサムを除外
  */
 export class ChangeDetector {
   constructor(
     private gitOps: GitOperations,
-    private idField: string = 'doc_id'
+    private idField: string = 'doc_id',
+    private config?: ShirushiConfig
   ) {}
 
   /**
@@ -129,11 +136,20 @@ export class ChangeDetector {
       ? this.extractDocId(currentContent, filePath, this.idField)
       : null;
 
+    // ADR-0009: forbid_id_change比較時にチェックサムを除外
+    // 旧形式の場合、チェックサム部分を除外して比較する
+    const baseDocIdForComparison = this.config
+      ? stripChecksumFromDocId(baseDocId, this.config)
+      : baseDocId;
+    const currentDocIdForComparison = this.config
+      ? stripChecksumFromDocId(currentDocId, this.config)
+      : currentDocId;
+
     return right({
       isNew: baseContent === null && currentContent !== null,
       isDeleted: baseContent !== null && currentContent === null,
       docIdChanged:
-        baseDocId !== currentDocId &&
+        baseDocIdForComparison !== currentDocIdForComparison &&
         baseContent !== null &&
         currentContent !== null,
       oldDocId: baseDocId,
@@ -176,11 +192,13 @@ export class ChangeDetector {
  *
  * @param gitOps - GitOperations実装
  * @param idField - IDフィールド名（デフォルト: 'doc_id'）
+ * @param config - Shirushi設定（ADR-0009: チェックサム除外用）
  * @returns ChangeDetector
  */
 export function createChangeDetector(
   gitOps: GitOperations,
-  idField: string = 'doc_id'
+  idField: string = 'doc_id',
+  config?: ShirushiConfig
 ): ChangeDetector {
-  return new ChangeDetector(gitOps, idField);
+  return new ChangeDetector(gitOps, idField, config);
 }

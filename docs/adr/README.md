@@ -33,6 +33,8 @@ Each ADR follows this structure:
 - [ADR-0005](0005-defer-assign-command.md) - Defer assign Command to v0.2
 - [ADR-0006](0006-no-gap-validation-for-serials.md) - No Gap Validation for Serial Numbers in v0.1
 - [ADR-0007](0007-manual-index-synchronization.md) - Manual Index Synchronization Only
+- [ADR-0008](0008-plugin-architecture.md) - Plugin Architecture for External System Integration
+- [ADR-0009](0009-separate-checksum-from-doc-id.md) - Separate Checksum from doc_id
 
 ## Creating New ADRs
 

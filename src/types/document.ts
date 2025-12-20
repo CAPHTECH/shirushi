@@ -25,6 +25,11 @@ export interface DocumentMetadata {
   owner?: string;
   superseded_by?: string;
   tags?: string[];
+  /**
+   * チェックサム値（新形式: ADR-0009）
+   * doc_idから分離されたチェックサムフィールド
+   */
+  checksum?: string;
   [key: string]: unknown;
 }
 

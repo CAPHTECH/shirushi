@@ -327,6 +327,32 @@ export const ShirushiErrors = {
     description:
       'Document content has changed and source files reference this document via @see or similar patterns.',
   },
+
+  // ADR-0009: Separate Checksum Domain
+  MISSING_CHECKSUM: {
+    code: 'MISSING_CHECKSUM',
+    message: 'Checksum field is missing from document metadata',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description:
+      'Document must have a checksum field when using separate checksum configuration (ADR-0009).',
+  },
+  INVALID_CHECKSUM: {
+    code: 'INVALID_CHECKSUM',
+    message: 'Checksum does not match computed value',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description:
+      'The checksum field value does not match the calculated checksum (ADR-0009).',
+  },
+  CHECKSUM_IN_ID_DEPRECATED: {
+    code: 'CHECKSUM_IN_ID_DEPRECATED',
+    message: 'Checksum dimension in id_format is deprecated',
+    domain: LawDomain.Config,
+    severity: ErrorSeverity.Warning,
+    description:
+      'Using checksum as part of doc_id is deprecated. Migrate to separate checksum field (ADR-0009).',
+  },
 } as const;
 
 export type ShirushiErrorCode = keyof typeof ShirushiErrors;

@@ -103,6 +103,23 @@ export const ContentIntegritySchema = z.object({
   source_references: z.array(SourceReferencePatternSchema).optional(),
 });
 
+/**
+ * チェックサム設定スキーマ（新形式）
+ *
+ * ADR-0009: チェックサムをdoc_idから分離して別フィールドに
+ * doc_idとは別にchecksumフィールドで管理する。
+ *
+ * @see docs/adr/0009-separate-checksum-from-doc-id.md
+ */
+export const ChecksumConfigSchema = z.object({
+  /** ドキュメント内のチェックサムフィールド名（デフォルト: "checksum"） */
+  field: z.string().min(1).default('checksum'),
+  /** チェックサムアルゴリズム（現在は mod26AZ のみ） */
+  algo: z.enum(['mod26AZ']),
+  /** チェックサム計算の対象となるdimension名の配列 */
+  of: z.array(z.string().min(1)).min(1),
+});
+
 export const ConfigSchema = z
   .object({
     id_format: z.string().min(1, 'id_format must not be empty'),
@@ -141,6 +158,17 @@ export const ConfigSchema = z
      * ドキュメント本文のハッシュを検証し、改ざんを検出する。
      */
     content_integrity: ContentIntegritySchema.optional(),
+
+    /**
+     * チェックサム設定（新形式）
+     *
+     * ADR-0009: チェックサムをdoc_idから分離して別フィールドに
+     * この設定がある場合、doc_idにはチェックサムを含めず、
+     * 別フィールド（デフォルト: checksum）で管理する。
+     *
+     * @see docs/adr/0009-separate-checksum-from-doc-id.md
+     */
+    checksum: ChecksumConfigSchema.optional(),
   })
   .superRefine((config, ctx) => {
     const placeholders = extractTemplatePlaceholders(config.id_format);
@@ -211,11 +239,42 @@ export const ConfigSchema = z
         }
       }
     }
+
+    // ADR-0009: checksum設定の検証
+    // id_format内のchecksum dimensionと、新形式checksum設定の競合をチェック
+    const hasChecksumInDimensions = Object.values(config.dimensions).some(
+      (dim) => dim.type === 'checksum'
+    );
+    const hasChecksumConfig = config.checksum !== undefined;
+
+    if (hasChecksumInDimensions && hasChecksumConfig) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['checksum'],
+        message:
+          'Cannot use both checksum dimension in id_format and separate checksum config. ' +
+          'Please migrate to the new format (ADR-0009).',
+      });
+    }
+
+    // 新形式checksum設定の場合、ofで指定されたdimensionが存在するか検証
+    if (hasChecksumConfig && config.checksum) {
+      for (const dimName of config.checksum.of) {
+        if (!config.dimensions[dimName]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['checksum', 'of'],
+            message: `checksum.of references undefined dimension: ${dimName}`,
+          });
+        }
+      }
+    }
   });
 
 export type ShirushiConfig = z.infer<typeof ConfigSchema>;
 export type DimensionDefinition = ShirushiConfig['dimensions'][string];
 export type ReferencePattern = z.infer<typeof ReferencePatternSchema>;
+export type ChecksumConfig = z.infer<typeof ChecksumConfigSchema>;
 
 const PLACEHOLDER_REGEX = /\{([A-Za-z0-9_]+)\}/g;
 const RAW_PLACEHOLDER_REGEX = /\{([^}]*)\}/g;
