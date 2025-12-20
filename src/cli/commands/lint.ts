@@ -23,6 +23,11 @@ import {
   validationErrorToLintError,
   formatLintQuiet,
 } from '@/cli/output/reporters';
+import {
+  validateSeparateChecksum,
+  usesLegacyChecksum,
+  usesSeparateChecksum,
+} from '@/core/checksum-validator';
 import { validateContentIntegrity } from '@/core/content-validator';
 import {
   loadIndexFile,
@@ -215,6 +220,30 @@ function collectDocumentIssues(
           issues.push(validationErrorToLintError(doc.path, error));
         }
       }
+
+      // ADR-0009: 新形式チェックサム検証
+      if (usesSeparateChecksum(config)) {
+        const checksumResult = validateSeparateChecksum(
+          doc.docId,
+          doc.metadata,
+          config
+        );
+
+        if (!checksumResult.valid && checksumResult.error) {
+          issues.push({
+            path: doc.path,
+            code: checksumResult.error.code,
+            message: checksumResult.error.message,
+            domain: LawDomain.Validation,
+            severity: ErrorSeverity.Error,
+            details: {
+              expected: checksumResult.error.expected,
+              actual: checksumResult.error.actual,
+              ...checksumResult.error.context,
+            },
+          });
+        }
+      }
     }
   }
 
@@ -325,6 +354,15 @@ export async function executeLint(options: LintOptions): Promise<number> {
     return 1;
   }
   const { config } = loaded;
+
+  // ADR-0009: 旧形式チェックサム使用時の非推奨警告
+  if (usesLegacyChecksum(config)) {
+    console.warn(
+      'Warning: Checksum dimension in id_format is deprecated (ADR-0009).\n' +
+        '         Migrate to separate checksum field for better traceability.\n' +
+        '         See: docs/adr/0009-separate-checksum-from-doc-id.md\n'
+    );
+  }
 
   // 3. 変更ファイルを取得（--changed-only 指定時、または --base 指定時）
   // リネーム情報を保持するためにChangedFile[]を保存
@@ -455,7 +493,8 @@ export async function executeLint(options: LintOptions): Promise<number> {
 
   if (options.base && (config.forbid_id_change || options.checkReferences)) {
     const gitOps = createGitOperations({ cwd });
-    const detector = createChangeDetector(gitOps, idField);
+    // ADR-0009: configを渡してチェックサム除外を有効化
+    const detector = createChangeDetector(gitOps, idField, config);
 
     // リネーム情報を含む検出対象を構築
     // changedFilesからリネーム情報を取得し、スキャンされたドキュメントと紐付ける

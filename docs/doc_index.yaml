@@ -118,7 +118,7 @@ documents:
     title: Architecture Decision Records (ADRs)
     status: Draft
     version: 0.1.0
-    content_hash: 8759cad076d4f3defe9dd3b38da9f320936b8dca275c9bf16e03e468b2a7b8aa
+    content_hash: 5d8be86a6656609e47ad0028f079bffad823f071b9f034b888eb6e8b02767fe0
   - doc_id: SHI-ADR-2025-0101-G
     path: docs/adr/template.md
     title: 'ADR-XXXX: Template'
@@ -130,3 +130,9 @@ documents:
   - doc_id: SHI-SPEC-2025-0003-N
     path: docs/plugin-development.md
     content_hash: b6fd6121327beb2353932a8369cacd872d11079d001527f517ea38b27fef9184
+  - doc_id: SHI-ADR-2025-0009-N
+    path: docs/adr/0009-separate-checksum-from-doc-id.md
+    title: 'ADR-0009: Separate Checksum from doc_id'
+    status: Accepted
+    version: 1.0.0
+    content_hash: e839b10111a472ac8ced01cfd93abcef594137426a6a64f4e4463655957c89e5
