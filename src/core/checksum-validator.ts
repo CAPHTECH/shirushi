@@ -4,7 +4,7 @@
  * ADR-0009: チェックサムをdoc_idから分離して別フィールドに
  * 新形式のチェックサム（doc_idとは別フィールド）を検証する。
  *
- * @see docs/adr/0009-separate-checksum-from-doc-id.md
+ * @see SHI-ADR-2025-0009-N
  */
 
 import { type Either, left, right, isLeft } from 'fp-ts/Either';

@@ -1,0 +1,31 @@
+{
+  "shirushi": {
+    "command": "node",
+    "args": ["/Users/rizumita/Workspace/CAPHTECH.public/shirushi/dist/cli/index.js", "lsp"],
+    "extensionToLanguage": {
+      ".ts": "typescript",
+      ".tsx": "typescriptreact",
+      ".js": "javascript",
+      ".jsx": "javascriptreact",
+      ".mjs": "javascript",
+      ".cjs": "javascript",
+      ".py": "python",
+      ".rs": "rust",
+      ".go": "go",
+      ".java": "java",
+      ".kt": "kotlin",
+      ".swift": "swift",
+      ".rb": "ruby",
+      ".php": "php",
+      ".c": "c",
+      ".cpp": "cpp",
+      ".h": "c",
+      ".hpp": "cpp",
+      ".cs": "csharp",
+      ".lua": "lua",
+      ".sh": "shellscript",
+      ".bash": "shellscript",
+      ".zsh": "shellscript"
+    }
+  }
+}

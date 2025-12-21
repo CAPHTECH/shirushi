@@ -1,0 +1,8 @@
+{
+  "name": "shirushi-lsp-plugin",
+  "description": "Shirushi LSP server for @see docid navigation",
+  "version": "1.0.0",
+  "author": {
+    "name": "CAPHTECH"
+  }
+}
