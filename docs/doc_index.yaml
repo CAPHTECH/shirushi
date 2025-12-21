@@ -34,7 +34,7 @@ documents:
     title: Shirushi User Guide
     status: Draft
     version: 0.1.0
-    content_hash: 011cf0315fdaeb899bb43dcece1919c975b0b120bcd8c2b39f32773e34918706
+    content_hash: 949873d0f823e54068f005b01cb8f6e831acf3b0c726cb8aa2dfc87e0831916e
   - doc_id: SHI-FORMAL-2025-0001-F
     path: docs/formal/README.md
     title: Shirushi Formal Specifications
