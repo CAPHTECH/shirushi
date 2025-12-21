@@ -136,3 +136,9 @@ documents:
     status: Accepted
     version: 1.0.0
     content_hash: e839b10111a472ac8ced01cfd93abcef594137426a6a64f4e4463655957c89e5
+  - doc_id: SHI-ADR-2025-0010-F
+    path: docs/adr/0010-lsp-server-integration.md
+    title: 'ADR-0010: LSP Server Integration for @see docid Navigation'
+    status: Accepted
+    version: 1.0.0
+    content_hash: bbf5f82c1cab6c5e3eaaceb44d26ce271a60e9b527b5410be2bd92c073dcb77b

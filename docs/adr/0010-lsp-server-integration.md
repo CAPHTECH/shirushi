@@ -1,5 +1,5 @@
 ---
-doc_id: SHI-ADR-2025-0010-O
+doc_id: SHI-ADR-2025-0010-F
 title: "ADR-0010: LSP Server Integration for @see docid Navigation"
 version: "1.0.0"
 status: Accepted
