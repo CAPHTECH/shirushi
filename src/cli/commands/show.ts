@@ -7,10 +7,11 @@
  * @see Issue #27: shirushi show コマンド
  *
  * オプション:
- * - --path-only: パスのみ出力（シェル連携用）
- * - --meta-only: メタデータのみ（本文なし）
- * - --json: JSON形式で出力
- * - --yaml: YAML形式で出力
+ * - --path-only, -p: パスのみ出力（シェル連携用）
+ * - --meta-only, -m: メタデータのみ（本文なし）
+ * - --format, -f: 出力形式（table, json, yaml）
+ * - --json: JSON形式で出力（--format json のエイリアス）
+ * - --yaml: YAML形式で出力（--format yaml のエイリアス）
  */
 
 import { loadConfigForCommand } from '@/cli/helpers/config';
@@ -44,6 +45,10 @@ export interface ShowOptions {
 interface ShowCliOptions {
   config?: string;
   format?: string;
+  /** --jsonエイリアス */
+  json?: boolean;
+  /** --yamlエイリアス */
+  yaml?: boolean;
   pathOnly?: boolean;
   metaOnly?: boolean;
 }
@@ -112,12 +117,24 @@ export function registerShowCommand(program: Command): void {
       'Output format (table, json, yaml)',
       'table'
     )
+    .option('--json', 'Output as JSON (alias for --format json)')
+    .option('--yaml', 'Output as YAML (alias for --format yaml)')
     .option('-p, --path-only', 'Output path only (for shell integration)')
     .option('-m, --meta-only', 'Output metadata only (no content)')
     .action(async (docId: string, opts: ShowCliOptions) => {
+      // --json/--yamlエイリアスを--formatに変換
+      let format: OutputFormat | undefined;
+      if (opts.json) {
+        format = 'json';
+      } else if (opts.yaml) {
+        format = 'yaml';
+      } else if (opts.format) {
+        format = opts.format as OutputFormat;
+      }
+
       const exitCode = await executeShow(docId, {
         ...(opts.config ? { config: opts.config } : {}),
-        ...(opts.format ? { format: opts.format as OutputFormat } : {}),
+        ...(format ? { format } : {}),
         ...(opts.pathOnly ? { pathOnly: opts.pathOnly } : {}),
         ...(opts.metaOnly ? { metaOnly: opts.metaOnly } : {}),
       });

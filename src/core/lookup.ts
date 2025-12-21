@@ -7,8 +7,10 @@
  * @see Issue #27: shirushi show コマンド
  */
 
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 
+import { ErrorSeverity } from '@/errors/definitions';
 import { parseMarkdownFile } from '@/parsers/markdown';
 import { parseYamlFile } from '@/parsers/yaml';
 
@@ -144,7 +146,24 @@ export async function lookupDocument(
     };
   }
 
-  // 4. ドキュメント種別を判定
+  // 4. シンボリックリンク経由のパストラバーサルをチェック
+  let realAbsolutePath: string;
+  try {
+    realAbsolutePath = await realpath(absolutePath);
+  } catch {
+    // ファイルが存在しない場合はrealpath失敗、後続のパースで適切にエラー処理
+    realAbsolutePath = absolutePath;
+  }
+  // シンボリックリンク解決後のパスがプロジェクトルート外を指している場合は拒否
+  if (!realAbsolutePath.startsWith(resolvedCwd + path.sep) && realAbsolutePath !== resolvedCwd) {
+    return {
+      success: false,
+      code: 'PARSE_ERROR',
+      message: `Invalid document path: ${indexEntry.path} (symlink points outside project root)`,
+    };
+  }
+
+  // 6. ドキュメント種別を判定
   const kind = getDocumentKind(indexEntry.path);
 
   if (!kind) {
@@ -173,7 +192,19 @@ export async function lookupDocument(
     };
   }
 
-  // 5. 成功結果を返す
+  // 7. パース結果に致命的な問題がないかチェック
+  const fatalProblems = parseResult.problems.filter(
+    (p) => p.severity === ErrorSeverity.Error
+  );
+  if (fatalProblems.length > 0) {
+    return {
+      success: false,
+      code: 'PARSE_ERROR',
+      message: `Document has errors: ${fatalProblems.map((p) => p.message).join('; ')}`,
+    };
+  }
+
+  // 8. 成功結果を返す
   return {
     success: true,
     path: indexEntry.path,
