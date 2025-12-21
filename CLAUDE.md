@@ -52,6 +52,7 @@ pnpm shirushi:scan    # Scan Shirushi's own docs
 ```bash
 shirushi lint          # Validate documents and index
 shirushi scan          # List documents with metadata
+shirushi show <doc_id> # Show document info by doc_id
 shirushi assign        # Assign IDs to new documents
 shirushi rehash        # Recalculate content hashes
 ```
@@ -165,19 +166,6 @@ Both documents and index file use the same configured field name.
 - Index file (`docs/doc_index.yaml`) is a derived artifact
 - Mismatches are reported as `DOC_ID_MISMATCH_WITH_INDEX`
 - Index sync is manual (ADR-0007), not automatic
-
-## Implementation Status
-
-### v0.1 (Released)
-- `shirushi lint` - Validation command (read-only)
-- `shirushi scan` - Document listing
-- Core ID generation logic
-
-### v0.2 (Current)
-- `shirushi assign` - Automatic ID assignment
-- `shirushi rehash` - Content hash recalculation
-- Content integrity validation with SHA-256
-- Source reference detection and warnings
 
 ## TypeScript Patterns
 

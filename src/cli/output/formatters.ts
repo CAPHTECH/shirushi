@@ -1,12 +1,15 @@
 /**
  * Output Formatters
  *
- * scan/lintコマンドの出力フォーマッタ。
+ * scan/lint/showコマンドの出力フォーマッタ。
  * JSON, YAML, table形式をサポート。
+ *
+ * @see Issue #27: shirushi show コマンド
  */
 
 import yaml from 'js-yaml';
 
+import type { LookupResult } from '@/core/lookup';
 import type { ScanSummary } from '@/core/scanner';
 import type { DocumentParseResult } from '@/types/document';
 
@@ -176,5 +179,134 @@ export function formatScanResult(
     case 'table':
     default:
       return formatScanAsTable(output);
+  }
+}
+
+// ===== Show Command Formatters (Issue #27) =====
+
+/**
+ * 値が文字列かどうかを判定する型ガード
+ */
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+/**
+ * 値が文字列配列かどうかを判定する型ガード
+ */
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string');
+}
+
+/**
+ * show出力モード
+ */
+export type ShowOutputMode = 'full' | 'path-only' | 'meta-only';
+
+/**
+ * showコマンドの出力データ（JSON/YAML用）
+ */
+export interface ShowOutput {
+  doc_id: string;
+  path: string;
+  title: string | null;
+  doc_type: string | null;
+  status: string | null;
+  version: string | null;
+  owner: string | null;
+  tags: string[] | null;
+  content?: string;
+}
+
+/**
+ * LookupResultをShowOutputに変換
+ * 型ガードを使用して安全にメタデータを抽出
+ */
+export function toShowOutput(result: LookupResult, includeContent: boolean = true): ShowOutput {
+  const { metadata } = result;
+  return {
+    doc_id: result.docId,
+    path: result.path,
+    title: isString(metadata.title) ? metadata.title : null,
+    doc_type: isString(metadata.doc_type) ? metadata.doc_type : null,
+    status: isString(metadata.status) ? metadata.status : null,
+    version: isString(metadata.version) ? metadata.version : null,
+    owner: isString(metadata.owner) ? metadata.owner : null,
+    tags: isStringArray(metadata.tags) ? metadata.tags : null,
+    ...(includeContent ? { content: result.content } : {}),
+  };
+}
+
+/**
+ * テーブル形式でshow結果をフォーマット
+ */
+export function formatShowAsTable(result: LookupResult, mode: ShowOutputMode): string {
+  const lines: string[] = [];
+
+  // メタデータ部分
+  lines.push(`Path:    ${result.path}`);
+
+  if (result.metadata.title) {
+    lines.push(`Title:   ${result.metadata.title}`);
+  }
+
+  if (result.metadata.doc_type) {
+    lines.push(`Type:    ${result.metadata.doc_type}`);
+  }
+
+  if (result.metadata.status) {
+    lines.push(`Status:  ${result.metadata.status}`);
+  }
+
+  if (result.metadata.version) {
+    lines.push(`Version: ${result.metadata.version}`);
+  }
+
+  if (result.metadata.owner) {
+    lines.push(`Owner:   ${result.metadata.owner}`);
+  }
+
+  if (result.metadata.tags && Array.isArray(result.metadata.tags) && result.metadata.tags.length > 0) {
+    lines.push(`Tags:    ${result.metadata.tags.join(', ')}`);
+  }
+
+  // 本文（fullモードのみ）
+  if (mode === 'full' && result.content) {
+    lines.push('');
+    lines.push('---');
+    lines.push(result.content.trim());
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * 指定フォーマットでshow結果をフォーマット
+ *
+ * @param result - Lookup結果
+ * @param format - 出力フォーマット
+ * @param mode - 出力モード
+ * @returns フォーマットされた文字列
+ */
+export function formatShowResult(
+  result: LookupResult,
+  format: OutputFormat,
+  mode: ShowOutputMode = 'full'
+): string {
+  // path-onlyモードは特別処理
+  if (mode === 'path-only') {
+    return result.path;
+  }
+
+  const includeContent = mode === 'full';
+
+  switch (format) {
+    case 'json':
+      return formatAsJson(toShowOutput(result, includeContent));
+    case 'yaml':
+      return formatAsYaml(toShowOutput(result, includeContent));
+    case 'table':
+    default:
+      return formatShowAsTable(result, mode);
   }
 }

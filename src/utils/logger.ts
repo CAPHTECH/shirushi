@@ -34,23 +34,8 @@ class LawLogger {
 
   private emit(event: TelemetryEvent) {
     const payload = this.formatEvent(event);
-
-    if (event.level === ErrorSeverity.Error) {
-      console.error(payload);
-      return;
-    }
-
-    if (event.level === ErrorSeverity.Warning) {
-      console.warn(payload);
-      return;
-    }
-
-    if (event.level === 'debug') {
-      console.debug(payload);
-      return;
-    }
-
-    console.log(payload);
+    // すべてのログをstderrに出力（stdoutはコマンド出力専用）
+    process.stderr.write(`${payload}\n`);
   }
 
   private formatEvent(event: TelemetryEvent): string {
