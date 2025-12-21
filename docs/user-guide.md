@@ -303,6 +303,73 @@ shirushi scan --format yaml
 └────────────────────────────┴──────────────────────────┴─────────────────────────┴──────────┘
 ```
 
+### `shirushi show`
+
+Display document information by doc_id.
+
+```bash
+# Show document (table format, includes content)
+shirushi show PCE-SPEC-2025-0001-G
+
+# JSON output
+shirushi show PCE-SPEC-2025-0001-G --format json
+
+# YAML output
+shirushi show PCE-SPEC-2025-0001-G --format yaml
+
+# Path only (for shell integration)
+shirushi show --path-only PCE-SPEC-2025-0001-G
+
+# Metadata only (no content)
+shirushi show --meta-only PCE-SPEC-2025-0001-G
+```
+
+**Output Example** (table format):
+
+```
+Path:    docs/pce/spec.md
+Title:   Boundary Definition
+Type:    spec
+Status:  active
+Version: 1.0.0
+Owner:   team/pce
+Tags:    important, v1
+
+---
+# Boundary Definition
+
+Your document content here...
+```
+
+**Options**:
+
+| Option | Description |
+|--------|-------------|
+| `--path-only`, `-p` | Output only the file path (useful for `code $(shirushi show -p DOC_ID)`) |
+| `--meta-only`, `-m` | Output metadata only, without content |
+| `--format`, `-f` | Output format: `table` (default), `json`, `yaml` |
+| `--config`, `-c` | Path to config file |
+
+**Use Cases**:
+
+```bash
+# Open document in editor
+code $(shirushi show --path-only PCE-SPEC-2025-0001-G)
+
+# View in less
+shirushi show PCE-SPEC-2025-0001-G | less
+
+# Get document title with jq
+shirushi show --json PCE-SPEC-2025-0001-G | jq '.title'
+
+# Get path for script
+doc_path=$(shirushi show --path-only $DOC_ID)
+```
+
+**Exit Codes**:
+- `0`: Success
+- `1`: Document not found or error
+
 ### `shirushi rehash`
 
 Recalculate content hashes for all documents. Used when `content_integrity` is enabled.

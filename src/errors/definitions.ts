@@ -328,6 +328,22 @@ export const ShirushiErrors = {
       'Document content has changed and source files reference this document via @see or similar patterns.',
   },
 
+  // Show Command Domain (Issue #27: shirushi show)
+  DOC_ID_NOT_FOUND: {
+    code: 'DOC_ID_NOT_FOUND',
+    message: 'doc_id not found in index',
+    domain: LawDomain.Validation,
+    severity: ErrorSeverity.Error,
+    description: 'The specified doc_id does not exist in the index file.',
+  },
+  INDEX_NOT_FOUND: {
+    code: 'INDEX_NOT_FOUND',
+    message: 'Index file not found',
+    domain: LawDomain.System,
+    severity: ErrorSeverity.Error,
+    description: 'The index file does not exist. Run "shirushi scan" first.',
+  },
+
   // ADR-0009: Separate Checksum Domain
   MISSING_CHECKSUM: {
     code: 'MISSING_CHECKSUM',

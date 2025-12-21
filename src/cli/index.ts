@@ -19,6 +19,7 @@ import { registerAssignCommand } from './commands/assign.js';
 import { registerLintCommand } from './commands/lint.js';
 import { registerRehashCommand } from './commands/rehash.js';
 import { registerScanCommand } from './commands/scan.js';
+import { registerShowCommand } from './commands/show.js';
 
 // package.jsonからバージョンを取得（ビルド時に解決される）
 const VERSION = '0.1.0';
@@ -41,6 +42,7 @@ function createProgram(): Command {
   registerLintCommand(program);
   registerRehashCommand(program);
   registerScanCommand(program);
+  registerShowCommand(program);
 
   return program;
 }

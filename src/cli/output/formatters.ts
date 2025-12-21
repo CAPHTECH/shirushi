@@ -1,12 +1,15 @@
 /**
  * Output Formatters
  *
- * scan/lintコマンドの出力フォーマッタ。
+ * scan/lint/showコマンドの出力フォーマッタ。
  * JSON, YAML, table形式をサポート。
+ *
+ * @see Issue #27: shirushi show コマンド
  */
 
 import yaml from 'js-yaml';
 
+import type { LookupResult } from '@/core/lookup';
 import type { ScanSummary } from '@/core/scanner';
 import type { DocumentParseResult } from '@/types/document';
 
@@ -176,5 +179,118 @@ export function formatScanResult(
     case 'table':
     default:
       return formatScanAsTable(output);
+  }
+}
+
+// ===== Show Command Formatters (Issue #27) =====
+
+/**
+ * show出力モード
+ */
+export type ShowOutputMode = 'full' | 'path-only' | 'meta-only';
+
+/**
+ * showコマンドの出力データ（JSON/YAML用）
+ */
+export interface ShowOutput {
+  doc_id: string;
+  path: string;
+  title: string | null;
+  doc_type: string | null;
+  status: string | null;
+  version: string | null;
+  owner: string | null;
+  tags: string[] | null;
+  content?: string;
+}
+
+/**
+ * LookupResultをShowOutputに変換
+ */
+export function toShowOutput(result: LookupResult, includeContent: boolean = true): ShowOutput {
+  return {
+    doc_id: result.docId,
+    path: result.path,
+    title: (result.metadata.title as string) ?? null,
+    doc_type: (result.metadata.doc_type as string) ?? null,
+    status: (result.metadata.status as string) ?? null,
+    version: (result.metadata.version as string) ?? null,
+    owner: (result.metadata.owner as string) ?? null,
+    tags: (result.metadata.tags as string[]) ?? null,
+    ...(includeContent ? { content: result.content } : {}),
+  };
+}
+
+/**
+ * テーブル形式でshow結果をフォーマット
+ */
+export function formatShowAsTable(result: LookupResult, mode: ShowOutputMode): string {
+  const lines: string[] = [];
+
+  // メタデータ部分
+  lines.push(`Path:    ${result.path}`);
+
+  if (result.metadata.title) {
+    lines.push(`Title:   ${result.metadata.title}`);
+  }
+
+  if (result.metadata.doc_type) {
+    lines.push(`Type:    ${result.metadata.doc_type}`);
+  }
+
+  if (result.metadata.status) {
+    lines.push(`Status:  ${result.metadata.status}`);
+  }
+
+  if (result.metadata.version) {
+    lines.push(`Version: ${result.metadata.version}`);
+  }
+
+  if (result.metadata.owner) {
+    lines.push(`Owner:   ${result.metadata.owner}`);
+  }
+
+  if (result.metadata.tags && Array.isArray(result.metadata.tags) && result.metadata.tags.length > 0) {
+    lines.push(`Tags:    ${result.metadata.tags.join(', ')}`);
+  }
+
+  // 本文（fullモードのみ）
+  if (mode === 'full' && result.content) {
+    lines.push('');
+    lines.push('---');
+    lines.push(result.content.trim());
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * 指定フォーマットでshow結果をフォーマット
+ *
+ * @param result - Lookup結果
+ * @param format - 出力フォーマット
+ * @param mode - 出力モード
+ * @returns フォーマットされた文字列
+ */
+export function formatShowResult(
+  result: LookupResult,
+  format: OutputFormat,
+  mode: ShowOutputMode = 'full'
+): string {
+  // path-onlyモードは特別処理
+  if (mode === 'path-only') {
+    return result.path;
+  }
+
+  const includeContent = mode === 'full';
+
+  switch (format) {
+    case 'json':
+      return formatAsJson(toShowOutput(result, includeContent));
+    case 'yaml':
+      return formatAsYaml(toShowOutput(result, includeContent));
+    case 'table':
+    default:
+      return formatShowAsTable(result, mode);
   }
 }
