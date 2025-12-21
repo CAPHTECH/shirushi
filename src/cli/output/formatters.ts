@@ -185,6 +185,20 @@ export function formatScanResult(
 // ===== Show Command Formatters (Issue #27) =====
 
 /**
+ * 値が文字列かどうかを判定する型ガード
+ */
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+/**
+ * 値が文字列配列かどうかを判定する型ガード
+ */
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string');
+}
+
+/**
  * show出力モード
  */
 export type ShowOutputMode = 'full' | 'path-only' | 'meta-only';
@@ -206,17 +220,19 @@ export interface ShowOutput {
 
 /**
  * LookupResultをShowOutputに変換
+ * 型ガードを使用して安全にメタデータを抽出
  */
 export function toShowOutput(result: LookupResult, includeContent: boolean = true): ShowOutput {
+  const { metadata } = result;
   return {
     doc_id: result.docId,
     path: result.path,
-    title: (result.metadata.title as string) ?? null,
-    doc_type: (result.metadata.doc_type as string) ?? null,
-    status: (result.metadata.status as string) ?? null,
-    version: (result.metadata.version as string) ?? null,
-    owner: (result.metadata.owner as string) ?? null,
-    tags: (result.metadata.tags as string[]) ?? null,
+    title: isString(metadata.title) ? metadata.title : null,
+    doc_type: isString(metadata.doc_type) ? metadata.doc_type : null,
+    status: isString(metadata.status) ? metadata.status : null,
+    version: isString(metadata.version) ? metadata.version : null,
+    owner: isString(metadata.owner) ? metadata.owner : null,
+    tags: isStringArray(metadata.tags) ? metadata.tags : null,
     ...(includeContent ? { content: result.content } : {}),
   };
 }

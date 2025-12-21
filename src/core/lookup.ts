@@ -125,8 +125,26 @@ export async function lookupDocument(
     };
   }
 
-  // 3. ドキュメントをパース
-  const absolutePath = path.join(cwd, indexEntry.path);
+  // 3. パストラバーサル攻撃を防ぐ
+  const normalizedPath = path.normalize(indexEntry.path);
+  if (path.isAbsolute(normalizedPath) || normalizedPath.startsWith('..')) {
+    return {
+      success: false,
+      code: 'PARSE_ERROR',
+      message: `Invalid document path: ${indexEntry.path} (path traversal detected)`,
+    };
+  }
+  const absolutePath = path.resolve(cwd, normalizedPath);
+  const resolvedCwd = path.resolve(cwd);
+  if (!absolutePath.startsWith(resolvedCwd + path.sep) && absolutePath !== resolvedCwd) {
+    return {
+      success: false,
+      code: 'PARSE_ERROR',
+      message: `Invalid document path: ${indexEntry.path} (outside project root)`,
+    };
+  }
+
+  // 4. ドキュメント種別を判定
   const kind = getDocumentKind(indexEntry.path);
 
   if (!kind) {
@@ -146,14 +164,16 @@ export async function lookupDocument(
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    // ENOENTはファイル未検出、それ以外はパースエラーとして分類
+    const isNotFound = (error as NodeJS.ErrnoException).code === 'ENOENT';
     return {
       success: false,
-      code: 'FILE_NOT_FOUND',
-      message: `Failed to read document: ${errorMessage}`,
+      code: isNotFound ? 'FILE_NOT_FOUND' : 'PARSE_ERROR',
+      message: `Failed to ${isNotFound ? 'find' : 'parse'} document: ${errorMessage}`,
     };
   }
 
-  // 4. 成功結果を返す
+  // 5. 成功結果を返す
   return {
     success: true,
     path: indexEntry.path,

@@ -183,4 +183,67 @@ title: 仕様書
       }
     });
   });
+
+  describe('セキュリティ', () => {
+    it('パストラバーサル攻撃（../）を防ぐ', async () => {
+      const indexContent = `documents:
+  - doc_id: SPEC-2025-0001
+    path: ../../../etc/passwd
+`;
+      await writeFile(path.join(TEST_DIR, 'docs/doc_index.yaml'), indexContent);
+
+      const config = createConfig();
+      const result = await lookupDocument('SPEC-2025-0001', config, { cwd: TEST_DIR });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe('PARSE_ERROR');
+        expect(result.message).toContain('path traversal');
+      }
+    });
+
+    it('絶対パスを拒否する', async () => {
+      const indexContent = `documents:
+  - doc_id: SPEC-2025-0001
+    path: /etc/passwd
+`;
+      await writeFile(path.join(TEST_DIR, 'docs/doc_index.yaml'), indexContent);
+
+      const config = createConfig();
+      const result = await lookupDocument('SPEC-2025-0001', config, { cwd: TEST_DIR });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe('PARSE_ERROR');
+        expect(result.message).toContain('path traversal');
+      }
+    });
+
+    it('..を含む正規のパスは許可する', async () => {
+      // docs/subdir/../spec.md は docs/spec.md と同等
+      const indexContent = `documents:
+  - doc_id: SPEC-2025-0001
+    path: docs/subdir/../spec.md
+`;
+      await writeFile(path.join(TEST_DIR, 'docs/doc_index.yaml'), indexContent);
+
+      // 実際のファイルを作成
+      await mkdir(path.join(TEST_DIR, 'docs/subdir'), { recursive: true });
+      const docContent = `---
+doc_id: SPEC-2025-0001
+title: Test
+---
+
+Content
+`;
+      await writeFile(path.join(TEST_DIR, 'docs/spec.md'), docContent);
+
+      const config = createConfig();
+      const result = await lookupDocument('SPEC-2025-0001', config, { cwd: TEST_DIR });
+
+      // docs/subdir/../spec.md は docs/spec.md に正規化され、
+      // プロジェクトルート内なので許可される
+      expect(result.success).toBe(true);
+    });
+  });
 });
