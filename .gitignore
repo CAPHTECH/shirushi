@@ -69,3 +69,6 @@ yarn.lock
 # Formal verification outputs
 formal/
 */_apalache-out/
+
+# Serena MCP tool settings
+.serena/

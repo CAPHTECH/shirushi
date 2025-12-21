@@ -109,7 +109,7 @@ export const ContentIntegritySchema = z.object({
  * ADR-0009: チェックサムをdoc_idから分離して別フィールドに
  * doc_idとは別にchecksumフィールドで管理する。
  *
- * @see docs/adr/0009-separate-checksum-from-doc-id.md
+ * @see SHI-ADR-2025-0009-N
  */
 export const ChecksumConfigSchema = z.object({
   /** ドキュメント内のチェックサムフィールド名（デフォルト: "checksum"） */
@@ -166,7 +166,7 @@ export const ConfigSchema = z
      * この設定がある場合、doc_idにはチェックサムを含めず、
      * 別フィールド（デフォルト: checksum）で管理する。
      *
-     * @see docs/adr/0009-separate-checksum-from-doc-id.md
+     * @see SHI-ADR-2025-0009-N
      */
     checksum: ChecksumConfigSchema.optional(),
   })

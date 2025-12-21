@@ -17,6 +17,7 @@ import { logger } from '../utils/logger.js';
 
 import { registerAssignCommand } from './commands/assign.js';
 import { registerLintCommand } from './commands/lint.js';
+import { registerLspCommand } from './commands/lsp.js';
 import { registerRehashCommand } from './commands/rehash.js';
 import { registerScanCommand } from './commands/scan.js';
 import { registerShowCommand } from './commands/show.js';
@@ -40,6 +41,7 @@ function createProgram(): Command {
   // サブコマンドを登録
   registerAssignCommand(program);
   registerLintCommand(program);
+  registerLspCommand(program);
   registerRehashCommand(program);
   registerScanCommand(program);
   registerShowCommand(program);
