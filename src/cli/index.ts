@@ -21,6 +21,7 @@ import { registerLspCommand } from './commands/lsp.js';
 import { registerRehashCommand } from './commands/rehash.js';
 import { registerScanCommand } from './commands/scan.js';
 import { registerShowCommand } from './commands/show.js';
+import { registerSkillCommand } from './commands/skill.js';
 
 // package.jsonからバージョンを取得（ビルド時に解決される）
 const VERSION = '0.1.0';
@@ -45,6 +46,7 @@ function createProgram(): Command {
   registerRehashCommand(program);
   registerScanCommand(program);
   registerShowCommand(program);
+  registerSkillCommand(program);
 
   return program;
 }
