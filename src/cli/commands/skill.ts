@@ -14,7 +14,7 @@
 
 import { existsSync, mkdirSync, cpSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import chalk from 'chalk';
@@ -105,11 +105,24 @@ function getSkillSourceDir(): string {
 
 /**
  * インストール先パスを解決
+ *
+ * セキュリティ: カスタムパスはcwd配下またはhome配下のみ許可
  */
 function resolveSkillPath(options: SkillInstallOptions): string {
   // カスタムパスが指定されていればそれを使用
   if (options.path) {
-    return join(options.path, SKILL_NAME);
+    const resolved = resolve(options.path);
+    const cwd = process.cwd();
+    const home = homedir();
+
+    // cwd配下またはhome配下のみ許可（パストラバーサル対策）
+    if (!resolved.startsWith(cwd) && !resolved.startsWith(home)) {
+      throw new Error(
+        `Security: Path must be under current directory or home directory: ${options.path}`
+      );
+    }
+
+    return join(resolved, SKILL_NAME);
   }
 
   const target = options.target ?? 'agent';
@@ -174,7 +187,15 @@ function getAllSkillPaths(cwd: string = process.cwd()): SkillPathInfo[] {
 export function executeSkillInstall(
   options: SkillInstallOptions
 ): number {
-  const targetDir = resolveSkillPath(options);
+  let targetDir: string;
+  try {
+    targetDir = resolveSkillPath(options);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(chalk.red(`Error: ${message}`));
+    return 1;
+  }
+
   const sourceDir = getSkillSourceDir();
 
   logger.debug('skill.install', 'Installing skill', {
@@ -213,18 +234,21 @@ export function executeSkillInstall(
 
     console.log(chalk.green(`✓ Installed shirushi skill to ${targetDir}`));
 
-    // ヒント表示
-    const target = options.target ?? 'agent';
-    if (target === 'agent') {
-      console.log(
-        chalk.gray(
-          '\nThis skill is available for Claude Code, Cursor, Windsurf, Aider, and other agents.'
-        )
-      );
-    } else {
-      console.log(
-        chalk.gray('\nThis skill is available for Claude Code.')
-      );
+    // ヒント表示（pathが指定されていない場合のみ）
+    // pathが指定された場合はtarget presetの意味がないため表示しない
+    if (!options.path) {
+      const target = options.target ?? 'agent';
+      if (target === 'agent') {
+        console.log(
+          chalk.gray(
+            '\nThis skill is available for Claude Code, Cursor, Windsurf, Aider, and other agents.'
+          )
+        );
+      } else {
+        console.log(
+          chalk.gray('\nThis skill is available for Claude Code.')
+        );
+      }
     }
 
     return 0;
@@ -287,7 +311,15 @@ export function executeSkillList(): number {
 export function executeSkillUninstall(
   options: SkillUninstallOptions
 ): number {
-  const targetDir = resolveSkillPath(options);
+  let targetDir: string;
+  try {
+    targetDir = resolveSkillPath(options);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error(chalk.red(`Error: ${message}`));
+    return 1;
+  }
+
   const skillMdPath = join(targetDir, 'SKILL.md');
 
   logger.debug('skill.uninstall', 'Uninstalling skill', {
@@ -302,8 +334,8 @@ export function executeSkillUninstall(
   }
 
   try {
-    // ディレクトリごと削除
-    rmSync(targetDir, { recursive: true, force: true });
+    // ディレクトリごと削除（force: falseでエラーを検出可能に）
+    rmSync(targetDir, { recursive: true });
     console.log(chalk.green(`✓ Uninstalled shirushi skill from ${targetDir}`));
     return 0;
   } catch (error) {

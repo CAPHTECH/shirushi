@@ -206,7 +206,7 @@ describe('skill command', () => {
   });
 
   describe('output messages', () => {
-    it('should show universal agent hint for agent preset', () => {
+    it('should NOT show hint when custom path is specified', () => {
       const targetDir = path.join(TEST_DIR, 'hint-agent');
 
       executeSkillInstall({
@@ -214,24 +214,15 @@ describe('skill command', () => {
         target: 'agent',
       });
 
+      // --pathを指定した場合、ヒントは表示されない（修正後の正しい動作）
       expect(
         consoleOutput.some((o) =>
           o.includes('Claude Code, Cursor, Windsurf, Aider')
         )
-      ).toBe(true);
-    });
-
-    it('should show Claude-only hint for claude preset', () => {
-      const targetDir = path.join(TEST_DIR, 'hint-claude');
-
-      executeSkillInstall({
-        path: targetDir,
-        target: 'claude',
-      });
-
+      ).toBe(false);
       expect(
         consoleOutput.some((o) => o.includes('available for Claude Code'))
-      ).toBe(true);
+      ).toBe(false);
     });
 
     it('should show success message with target path', () => {
@@ -241,6 +232,20 @@ describe('skill command', () => {
 
       expect(
         consoleOutput.some((o) => o.includes('Installed shirushi skill to'))
+      ).toBe(true);
+    });
+  });
+
+  describe('security', () => {
+    it('should reject paths outside cwd and home directory', () => {
+      // /tmp はcwd配下でもhome配下でもないのでエラーになる
+      const exitCode = executeSkillInstall({
+        path: '/tmp/malicious-path',
+      });
+
+      expect(exitCode).toBe(1);
+      expect(
+        consoleErrors.some((e) => e.includes('Security'))
       ).toBe(true);
     });
   });
