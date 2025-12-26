@@ -204,4 +204,108 @@ describe('skill command', () => {
       );
     });
   });
+
+  describe('output messages', () => {
+    it('should show universal agent hint for agent preset', () => {
+      const targetDir = path.join(TEST_DIR, 'hint-agent');
+
+      executeSkillInstall({
+        path: targetDir,
+        target: 'agent',
+      });
+
+      expect(
+        consoleOutput.some((o) =>
+          o.includes('Claude Code, Cursor, Windsurf, Aider')
+        )
+      ).toBe(true);
+    });
+
+    it('should show Claude-only hint for claude preset', () => {
+      const targetDir = path.join(TEST_DIR, 'hint-claude');
+
+      executeSkillInstall({
+        path: targetDir,
+        target: 'claude',
+      });
+
+      expect(
+        consoleOutput.some((o) => o.includes('available for Claude Code'))
+      ).toBe(true);
+    });
+
+    it('should show success message with target path', () => {
+      const targetDir = path.join(TEST_DIR, 'success-msg');
+
+      executeSkillInstall({ path: targetDir });
+
+      expect(
+        consoleOutput.some((o) => o.includes('Installed shirushi skill to'))
+      ).toBe(true);
+    });
+  });
+
+  describe('error handling', () => {
+    it('should show helpful message when uninstalling non-existent skill', () => {
+      const targetDir = path.join(TEST_DIR, 'error-uninstall');
+
+      executeSkillUninstall({ path: targetDir });
+
+      expect(
+        consoleErrors.some((e) => e.includes('No skill found'))
+      ).toBe(true);
+    });
+
+    it('should show helpful message when skill already exists', () => {
+      const targetDir = path.join(TEST_DIR, 'error-exists');
+
+      // 最初のインストール
+      executeSkillInstall({ path: targetDir });
+      consoleErrors = []; // リセット
+
+      // 2回目のインストール
+      executeSkillInstall({ path: targetDir });
+
+      expect(
+        consoleErrors.some((e) => e.includes('already exists'))
+      ).toBe(true);
+      expect(
+        consoleErrors.some((e) => e.includes('--force'))
+      ).toBe(true);
+    });
+  });
+
+  describe('skill list details', () => {
+    it('should show all four search paths', () => {
+      executeSkillList();
+
+      // 4つのパスが表示される
+      const pathCount = consoleOutput.filter((o) =>
+        o.includes('/skills/shirushi')
+      ).length;
+      expect(pathCount).toBeGreaterThanOrEqual(4);
+    });
+
+    it('should show project and global labels', () => {
+      executeSkillList();
+
+      expect(
+        consoleOutput.some((o) => o.includes('[project]'))
+      ).toBe(true);
+      expect(
+        consoleOutput.some((o) => o.includes('[global]'))
+      ).toBe(true);
+    });
+
+    it('should show universal and claude labels', () => {
+      executeSkillList();
+
+      expect(
+        consoleOutput.some((o) => o.includes('[universal]'))
+      ).toBe(true);
+      expect(
+        consoleOutput.some((o) => o.includes('[claude]'))
+      ).toBe(true);
+    });
+  });
 });
