@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-12-27
+
+### Features
+- `shirushi skill` command for AI agent skill distribution
+  - Install shirushi skill files for Claude Code, Cursor, Windsurf, Aider, and other agents
+  - Support for OpenSkills-compatible directory structure (`.agent/skills/`, `.claude/skills/`)
+  - Global installation support (`~/.agent/skills/`, `~/.claude/skills/`)
+  - `skill install`, `skill list`, `skill uninstall` subcommands
+  - Path traversal protection for security
+- `shirushi show <doc_id>` command for document lookup by ID
+  - Retrieve document information directly from doc_id
+  - Table and JSON output formats
+- `shirushi lsp` command for Language Server Protocol integration
+  - Jump-to-definition for `@see docid` references in source code
+  - Integration with IDE extensions (VS Code, etc.)
+
+## [0.3.0] - 2025-12-21
+
+### Features
+- Content integrity validation with SHA-256 hashing
+- Checksum suffix for doc_id format (`source_ref_patterns`)
+- Enhanced traceability between documents and source references
+
+### CI/CD
+- Enforce shirushi lint in dogfood job
+
 ## [0.2.0] - 2025-12-18
 
 ### Added
