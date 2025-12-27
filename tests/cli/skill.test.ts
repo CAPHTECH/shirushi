@@ -120,10 +120,14 @@ describe('skill command', () => {
     it('should show search paths and installation status', () => {
       const exitCode = executeSkillList();
 
+      // クロスプラットフォーム対応: path.sep を使用
+      const agentSkillsPath = `.agent${path.sep}skills`;
+      const claudeSkillsPath = `.claude${path.sep}skills`;
+
       expect(exitCode).toBe(0);
       expect(consoleOutput.some((o) => o.includes('Search paths'))).toBe(true);
-      expect(consoleOutput.some((o) => o.includes('.agent/skills'))).toBe(true);
-      expect(consoleOutput.some((o) => o.includes('.claude/skills'))).toBe(
+      expect(consoleOutput.some((o) => o.includes(agentSkillsPath))).toBe(true);
+      expect(consoleOutput.some((o) => o.includes(claudeSkillsPath))).toBe(
         true
       );
     });
@@ -295,9 +299,11 @@ describe('skill command', () => {
     it('should show all four search paths', () => {
       executeSkillList();
 
+      // クロスプラットフォーム対応: path.sep を使用
+      const skillsPath = `${path.sep}skills${path.sep}shirushi`;
       // 4つのパスが表示される
       const pathCount = consoleOutput.filter((o) =>
-        o.includes('/skills/shirushi')
+        o.includes(skillsPath)
       ).length;
       expect(pathCount).toBeGreaterThanOrEqual(4);
     });
