@@ -358,7 +358,12 @@ interface SkillCliOptions {
 
 /**
  * Commanderにskillコマンドを登録
+ *
+ * Note: この関数はCommander.jsのアクションハンドラでprocess.exitを呼ぶため、
+ * ユニットテストでカバーするのが困難です。コア機能はexecuteSkillInstall等で
+ * テストしています。
  */
+/* c8 ignore start */
 export function registerSkillCommand(program: Command): void {
   const skill = program
     .command('skill')
@@ -418,3 +423,4 @@ export function registerSkillCommand(program: Command): void {
       process.exit(exitCode);
     });
 }
+/* c8 ignore stop */

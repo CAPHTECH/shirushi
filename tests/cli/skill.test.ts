@@ -237,9 +237,20 @@ describe('skill command', () => {
   });
 
   describe('security', () => {
-    it('should reject paths outside cwd and home directory', () => {
+    it('should reject paths outside cwd and home directory for install', () => {
       // /tmp はcwd配下でもhome配下でもないのでエラーになる
       const exitCode = executeSkillInstall({
+        path: '/tmp/malicious-path',
+      });
+
+      expect(exitCode).toBe(1);
+      expect(
+        consoleErrors.some((e) => e.includes('Security'))
+      ).toBe(true);
+    });
+
+    it('should reject paths outside cwd and home directory for uninstall', () => {
+      const exitCode = executeSkillUninstall({
         path: '/tmp/malicious-path',
       });
 
