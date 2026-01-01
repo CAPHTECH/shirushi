@@ -23,6 +23,12 @@ documents:
     status: Draft
     version: 0.1.0
     content_hash: 2fb3d778bd80d03e1162e01730a583fcc8ab79bd08fd8c608d84513c9e3c2038
+  - doc_id: SHI-INT-2026-0001-A
+    path: docs/internal/codebase-map.md
+    title: Shirushi Codebase Map & Change Playbook
+    status: Draft
+    version: 0.1.0
+    content_hash: 82b51c40cbdf63019eecfcfff92516f7b7f9985de07d175df39b0fb798b74ff8
   - doc_id: SHI-GUIDE-2025-0001-A
     path: docs/developer-guide.md
     title: Shirushi Developer Guide
